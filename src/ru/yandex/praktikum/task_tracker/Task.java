@@ -4,10 +4,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class Task {
-    private String name;
-    private String description;
-    private UUID id;
-    private Statuses status;
+    protected String name;
+    protected String description;
+    protected UUID id;
+    protected Statuses status;
 
     public Task(String name, String description) {
         this.name = name;
@@ -62,11 +62,11 @@ public class Task {
 
     @Override
     public String toString() {
-        return String.format("%s{" +
+        return "Task{" +
                 "name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", id=" + id +
                 ", status=" + status +
-                '}', this.getClass().getSimpleName());
+                '}';
     }
 }

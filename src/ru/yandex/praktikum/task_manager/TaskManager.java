@@ -14,20 +14,21 @@ public class TaskManager {
     private HashMap<UUID, Task> tasks = new HashMap<>();
     private HashMap<UUID, Subtask> subtasks = new HashMap<>();
 
-    public HashMap<UUID, Epic> getEpicTasks() {
-        return epicTasks;
+    public List<Epic> getEpicTasks() {
+        return epicTasks.values().stream().toList();
     }
 
-    public HashMap<UUID, Task> getTasks() {
-        return tasks;
+    public List<Task> getTasks() {
+        return tasks.values().stream().toList();
     }
 
-    public HashMap<UUID, Subtask> getSubtasks() {
-        return subtasks;
+    public List<Subtask> getSubtasks() {
+        return subtasks.values().stream().toList();
     }
 
     public void clearEpicTasks() {
         epicTasks.clear();
+        subtasks.clear();
     }
 
     public void clearTasks() {
@@ -36,6 +37,11 @@ public class TaskManager {
 
     public void clearSubtasks() {
         subtasks.clear();
+        epicTasks.values().forEach(epic -> {
+            epic.getIdSubtasks().clear();
+            changerEpicStatus(epic);
+        });
+
     }
 
     public Epic getEpic(UUID id) {
@@ -62,74 +68,78 @@ public class TaskManager {
         return subtasks.get(id);
     }
 
-    public String createEpic(Epic epic) {
+    public UUID createEpic(Epic epic) {
+        if (epic.getId() != null && epicTasks.containsKey(epic.getId())) {
+            System.out.println("Такой эпик уже существует!");
+            return epic.getId();
+        }
         epic.setId(UUID.randomUUID());
-        if (epicTasks.containsKey(epic.getId())) {
-            return "Такой эпик уже существует!";
-        }
         epicTasks.put(epic.getId(), epic);
-        return String.format("Задача типа 'Epic' с идентификатором '%s' создана\n", epic.getId());
+        System.out.println("Эпик создан");
+        return epic.getId();
     }
 
-    public String createTask(Task task) {
+    public UUID createTask(Task task) {
+        if (task.getId() != null && tasks.containsKey(task.getId())) {
+            System.out.println("Такая задача уже существует!");
+            return task.getId();
+        }
         task.setId(UUID.randomUUID());
-        if (tasks.containsKey(task.getId())) {
-            return "Такая задача уже существует!";
-        }
         tasks.put(task.getId(), task);
-        return String.format("Задача типа 'Task' с идентификатором '%s' создана\n", task.getId());
-
+        System.out.println("Задача создана");
+        return task.getId();
     }
 
-    public String createSubtask(Subtask subtask, Epic epic) {
+    public UUID createSubtask(Subtask subtask) {
+        if (!epicTasks.containsKey(subtask.getEpicId())) {
+            System.out.println("При создании подзадачи эпик не был определен!");
+            return subtask.getId();
+        }
         subtask.setId(UUID.randomUUID());
-        if (subtasks.containsKey(subtask.getId())) {
-            return "Такая подзадача уже существует!";
-        }
+        Epic epic = epicTasks.get(subtask.getEpicId());
+        epic.addSubtask(subtask.getId());
+        changerEpicStatus(epic);
         subtasks.put(subtask.getId(), subtask);
-        epic.addSubtask(subtask);
-        return String.format("Задача типа 'Subtask' с идентификатором '%s' создана\n", subtask.getId());
-
+        System.out.println("Подзадача создана");
+        return subtask.getId();
     }
 
-    public String updateEpic(Epic epic) {
+    public void updateEpic(Epic epic) {
         if (epicTasks.containsKey(epic.getId())) {
-            epicTasks.put(epic.getId(), epic);
-            return String.format("Задача типа 'Epic' с идентификатором '%s' обновлена\n", epic.getId());
+            Epic newEpic = epicTasks.get(epic.getId());
+            newEpic.setName(epic.getName());
+            newEpic.setDescription(epic.getDescription());
+            epicTasks.put(epic.getId(), newEpic);
+            System.out.printf("Задача типа 'Epic' с идентификатором '%s' обновлена\n", epic.getId());
+        } else {
+            System.out.printf("Задачи типа 'Epic' с идентификатором '%s' нет в списке\n", epic.getId());
         }
-        return String.format("Задачи типа 'Epic' с идентификатором '%s' нет в списке", epic.getId());
     }
 
-    public String updateTask(Task task) {
+    public void updateTask(Task task) {
         if (tasks.containsKey(task.getId())) {
             tasks.put(task.getId(), task);
-            return String.format("Задача типа 'Task' с идентификатором '%s' обновлена\n", task.getId());
+            System.out.printf("Задача типа 'Task' с идентификатором '%s' обновлена\n", task.getId());
+        } else {
+            System.out.printf("Задачи типа 'Task' с идентификатором '%s' нет в списке\n", task.getId());
         }
-        return String.format("Задачи типа 'Task' с идентификатором '%s' нет в списке\n", task.getId());
     }
 
-    public String updateSubtask(Subtask subtask) {
+    public void updateSubtask(Subtask subtask) {
         if (subtasks.containsKey(subtask.getId())) {
             subtasks.put(subtask.getId(), subtask);
-            for (Subtask task : subtask.getEpic().getSubtasks()) {
-                if (task.getStatus() == Statuses.DONE) {
-                    subtask.getEpic().setStatus(Statuses.DONE);
-                }
-                if (task.getStatus() == Statuses.IN_PROGRESS) {
-                    subtask.getEpic().setStatus(Statuses.IN_PROGRESS);
-                }
-            }
-            return String.format("Задача типа 'Subtask' с идентификатором '%s' обновлена\n", subtask.getId());
+            changerEpicStatus(epicTasks.get(subtask.getEpicId()));
+            System.out.printf("Задача типа 'Subtask' с идентификатором '%s' обновлена\n", subtask.getId());
+        } else {
+            System.out.printf("Задачи типа 'Subtask' с идентификатором '%s' нет в списке\n", subtask.getId());
         }
-        return String.format("Задачи типа 'Subtask' с идентификатором '%s' нет в списке\n", subtask.getId());
     }
 
     public boolean removeEpic(UUID id) {
         if (epicTasks.containsKey(id)) {
-            if (subtasks.containsKey(id)) {
-                if (epicTasks.get(id).equals(subtasks.get(id).getEpic())) {
-                    subtasks.remove(id);
-                }
+            Epic deleteEpic = epicTasks.get(id);
+            if (!deleteEpic.getIdSubtasks().isEmpty()) {
+                deleteEpic.getIdSubtasks().forEach(taskId -> subtasks.remove(taskId));
             }
             return epicTasks.remove(id) != null;
         }
@@ -143,11 +153,12 @@ public class TaskManager {
 
     public boolean removeSubtask(UUID id) {
         if (subtasks.containsKey(id)) {
-            Epic epic = subtasks.get(id).getEpic();
-            if (epic.getSubtasks().size() == 1) {
-                epic.setStatus(Statuses.NEW);
-            }
-            return subtasks.remove(id) != null;
+            boolean result;
+            Epic linkedEpic = epicTasks.get(subtasks.get(id).getEpicId());
+            result = subtasks.remove(id) != null;
+            linkedEpic.getIdSubtasks().remove(id);
+            changerEpicStatus(linkedEpic);
+            return result;
         }
         System.out.printf("Подзадачи с тикетом '%s' нет в списке", id);
         return false;
@@ -158,7 +169,29 @@ public class TaskManager {
             System.out.printf("Эпик с тикетом '%s' отсутствет\n", epic.getId());
             return null;
         }
-        return epicTasks.get(epic.getId()).getSubtasks();
+        return epic.getIdSubtasks().stream().map(subtaskId -> subtasks.get(subtaskId)).toList();
+    }
+
+    private void changerEpicStatus(Epic epic) {
+        List<Subtask> epicSubtask = subtasks.values()
+                .stream()
+                .filter(subtask -> subtask.getEpicId().equals(epic.getId())).toList();
+        if (!epicSubtask.isEmpty()) {
+            Statuses finalStatus = null;
+            for (Subtask subtask : epicSubtask) {
+                if (subtask.getStatus() == Statuses.DONE && (finalStatus == Statuses.DONE || finalStatus == null)) {
+                    finalStatus = Statuses.DONE;
+                } else if (subtask.getStatus() == Statuses.NEW && (finalStatus == Statuses.NEW || finalStatus == null)) {
+                    finalStatus = Statuses.NEW;
+                } else {
+                    finalStatus = Statuses.IN_PROGRESS;
+                    break;
+                }
+            }
+            epic.setStatus(finalStatus);
+        } else {
+            epic.setStatus(Statuses.NEW);
+        }
     }
 
 }
