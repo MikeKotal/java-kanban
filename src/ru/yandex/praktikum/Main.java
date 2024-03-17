@@ -60,7 +60,7 @@ public class Main {
 
         System.out.println("Смотрим удаления подзадач в эпиках и смену статусов самого эпика");
         System.out.println(manager.getEpicTasks());
-        System.out.println(manager.getEpicSubtask(epic2));
+        System.out.println(manager.getEpicSubtask(epic2.getId()));
 
         System.out.println("Удаляем епик и задачу");
         System.out.printf("Задача удалена: %s\n", manager.removeTask(task1.getId()));
@@ -71,6 +71,6 @@ public class Main {
         System.out.println(manager.getEpicTasks());
         System.out.println(manager.getSubtasks());
 
-        System.out.println(manager.getEpicSubtask(epic1));
+        System.out.println(manager.getEpicSubtask(epic1.getId()));
     }
 }
