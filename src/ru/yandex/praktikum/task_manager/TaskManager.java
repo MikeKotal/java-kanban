@@ -5,6 +5,7 @@ import ru.yandex.praktikum.task_tracker.Statuses;
 import ru.yandex.praktikum.task_tracker.Subtask;
 import ru.yandex.praktikum.task_tracker.Task;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -15,15 +16,15 @@ public class TaskManager {
     private HashMap<UUID, Subtask> subtasks = new HashMap<>();
 
     public List<Epic> getEpicTasks() {
-        return epicTasks.values().stream().toList();
+        return new ArrayList<>(epicTasks.values());
     }
 
     public List<Task> getTasks() {
-        return tasks.values().stream().toList();
+        return new ArrayList<>(tasks.values());
     }
 
     public List<Subtask> getSubtasks() {
-        return subtasks.values().stream().toList();
+        return new ArrayList<>(subtasks.values());
     }
 
     public void clearEpicTasks() {
@@ -98,8 +99,8 @@ public class TaskManager {
         subtask.setId(UUID.randomUUID());
         Epic epic = epicTasks.get(subtask.getEpicId());
         epic.addSubtask(subtask.getId());
-        changerEpicStatus(epic);
         subtasks.put(subtask.getId(), subtask);
+        changerEpicStatus(epic);
         System.out.println("Подзадача создана");
         return subtask.getId();
     }
@@ -109,7 +110,6 @@ public class TaskManager {
             Epic newEpic = epicTasks.get(epic.getId());
             newEpic.setName(epic.getName());
             newEpic.setDescription(epic.getDescription());
-            epicTasks.put(epic.getId(), newEpic);
             System.out.printf("Задача типа 'Epic' с идентификатором '%s' обновлена\n", epic.getId());
         } else {
             System.out.printf("Задачи типа 'Epic' с идентификатором '%s' нет в списке\n", epic.getId());
@@ -136,12 +136,10 @@ public class TaskManager {
     }
 
     public boolean removeEpic(UUID id) {
-        if (epicTasks.containsKey(id)) {
-            Epic deleteEpic = epicTasks.get(id);
-            if (!deleteEpic.getIdSubtasks().isEmpty()) {
-                deleteEpic.getIdSubtasks().forEach(taskId -> subtasks.remove(taskId));
-            }
-            return epicTasks.remove(id) != null;
+        Epic deleteEpic = epicTasks.remove(id);
+        if (deleteEpic != null) {
+            deleteEpic.getIdSubtasks().forEach(taskId -> subtasks.remove(taskId));
+            return true;
         }
         System.out.printf("Эпик с тикетом '%s' отсутствует\n", id);
         return false;
@@ -152,30 +150,27 @@ public class TaskManager {
     }
 
     public boolean removeSubtask(UUID id) {
-        if (subtasks.containsKey(id)) {
-            boolean result;
-            Epic linkedEpic = epicTasks.get(subtasks.get(id).getEpicId());
-            result = subtasks.remove(id) != null;
+        Subtask subtask = subtasks.remove(id);
+        if (subtask != null) {
+            Epic linkedEpic = epicTasks.get(subtask.getEpicId());
             linkedEpic.getIdSubtasks().remove(id);
             changerEpicStatus(linkedEpic);
-            return result;
+            return true;
         }
         System.out.printf("Подзадачи с тикетом '%s' нет в списке", id);
         return false;
     }
 
-    public List<Subtask> getEpicSubtask(Epic epic) {
-        if (!epicTasks.containsKey(epic.getId())) {
-            System.out.printf("Эпик с тикетом '%s' отсутствет\n", epic.getId());
+    public List<Subtask> getEpicSubtask(UUID id) {
+        if (!epicTasks.containsKey(id)) {
+            System.out.printf("Эпик с тикетом '%s' отсутствет\n", id);
             return null;
         }
-        return epic.getIdSubtasks().stream().map(subtaskId -> subtasks.get(subtaskId)).toList();
+        return epicTasks.get(id).getIdSubtasks().stream().map(subtaskId -> subtasks.get(subtaskId)).toList();
     }
 
     private void changerEpicStatus(Epic epic) {
-        List<Subtask> epicSubtask = subtasks.values()
-                .stream()
-                .filter(subtask -> subtask.getEpicId().equals(epic.getId())).toList();
+        List<Subtask> epicSubtask = epic.getIdSubtasks().stream().map(subtaskId -> subtasks.get(subtaskId)).toList();
         if (!epicSubtask.isEmpty()) {
             Statuses finalStatus = null;
             for (Subtask subtask : epicSubtask) {
