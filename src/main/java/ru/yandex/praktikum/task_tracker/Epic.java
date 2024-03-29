@@ -11,8 +11,12 @@ public class Epic extends Task {
         super(name, description);
     }
 
-    public void addSubtask(UUID idSubtask) {
+    public boolean addSubtask(UUID idSubtask) {
+        if (id.equals(idSubtask)) {
+            return false;
+        }
         idSubtasks.add(idSubtask);
+        return true;
     }
 
     public List<UUID> getIdSubtasks() {
