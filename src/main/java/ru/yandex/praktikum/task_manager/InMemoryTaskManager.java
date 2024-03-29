@@ -10,32 +10,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-public class TaskManager {
+public class InMemoryTaskManager implements TaskManager {
+    private final HistoryManager manager = Managers.getDefaultHistory();
     private HashMap<UUID, Epic> epicTasks = new HashMap<>();
     private HashMap<UUID, Task> tasks = new HashMap<>();
     private HashMap<UUID, Subtask> subtasks = new HashMap<>();
 
     public List<Epic> getEpicTasks() {
+        epicTasks.values().forEach(manager::add);
         return new ArrayList<>(epicTasks.values());
     }
 
+    @Override
     public List<Task> getTasks() {
+        tasks.values().forEach(manager::add);
         return new ArrayList<>(tasks.values());
     }
 
+    @Override
     public List<Subtask> getSubtasks() {
+        subtasks.values().forEach(manager::add);
         return new ArrayList<>(subtasks.values());
     }
 
+    @Override
     public void clearEpicTasks() {
         epicTasks.clear();
         subtasks.clear();
     }
 
+    @Override
     public void clearTasks() {
         tasks.clear();
     }
 
+    @Override
     public void clearSubtasks() {
         subtasks.clear();
         epicTasks.values().forEach(epic -> {
@@ -45,30 +54,37 @@ public class TaskManager {
 
     }
 
+    @Override
     public Epic getEpic(UUID id) {
         if (!epicTasks.containsKey(id)) {
             System.out.printf("Эпик с тикетом '%s' отсутствет\n", id);
             return null;
         }
+        manager.add(epicTasks.get(id));
         return epicTasks.get(id);
     }
 
+    @Override
     public Task getTask(UUID id) {
         if (!tasks.containsKey(id)) {
             System.out.printf("Задача с тикетом '%s' отсутствет\n", id);
             return null;
         }
+        manager.add(tasks.get(id));
         return tasks.get(id);
     }
 
+    @Override
     public Subtask getSubtask(UUID id) {
         if (!subtasks.containsKey(id)) {
             System.out.printf("Подзадача с тикетом '%s' отсутствет\n", id);
             return null;
         }
+        manager.add(subtasks.get(id));
         return subtasks.get(id);
     }
 
+    @Override
     public UUID createEpic(Epic epic) {
         if (epic.getId() != null && epicTasks.containsKey(epic.getId())) {
             System.out.println("Такой эпик уже существует!");
@@ -80,6 +96,7 @@ public class TaskManager {
         return epic.getId();
     }
 
+    @Override
     public UUID createTask(Task task) {
         if (task.getId() != null && tasks.containsKey(task.getId())) {
             System.out.println("Такая задача уже существует!");
@@ -91,20 +108,28 @@ public class TaskManager {
         return task.getId();
     }
 
+    @Override
     public UUID createSubtask(Subtask subtask) {
         if (!epicTasks.containsKey(subtask.getEpicId())) {
             System.out.println("При создании подзадачи эпик не был определен!");
             return subtask.getId();
         }
+        if (subtask.getId() != null && subtasks.containsKey(subtask.getId())) {
+            System.out.println("Такая подзадача уже существует!");
+            return subtask.getId();
+        }
         subtask.setId(UUID.randomUUID());
         Epic epic = epicTasks.get(subtask.getEpicId());
-        epic.addSubtask(subtask.getId());
-        subtasks.put(subtask.getId(), subtask);
-        changerEpicStatus(epic);
-        System.out.println("Подзадача создана");
-        return subtask.getId();
+        if (epic.addSubtask(subtask.getId())) {
+            subtasks.put(subtask.getId(), subtask);
+            changerEpicStatus(epic);
+            System.out.println("Подзадача создана");
+            return subtask.getId();
+        }
+        return null;
     }
 
+    @Override
     public void updateEpic(Epic epic) {
         if (epicTasks.containsKey(epic.getId())) {
             Epic newEpic = epicTasks.get(epic.getId());
@@ -116,6 +141,7 @@ public class TaskManager {
         }
     }
 
+    @Override
     public void updateTask(Task task) {
         if (tasks.containsKey(task.getId())) {
             tasks.put(task.getId(), task);
@@ -125,6 +151,7 @@ public class TaskManager {
         }
     }
 
+    @Override
     public void updateSubtask(Subtask subtask) {
         if (subtasks.containsKey(subtask.getId())) {
             subtasks.put(subtask.getId(), subtask);
@@ -135,6 +162,7 @@ public class TaskManager {
         }
     }
 
+    @Override
     public boolean removeEpic(UUID id) {
         Epic deleteEpic = epicTasks.remove(id);
         if (deleteEpic != null) {
@@ -145,10 +173,12 @@ public class TaskManager {
         return false;
     }
 
+    @Override
     public boolean removeTask(UUID id) {
         return tasks.remove(id) != null;
     }
 
+    @Override
     public boolean removeSubtask(UUID id) {
         Subtask subtask = subtasks.remove(id);
         if (subtask != null) {
@@ -161,12 +191,18 @@ public class TaskManager {
         return false;
     }
 
+    @Override
     public List<Subtask> getEpicSubtask(UUID id) {
         if (!epicTasks.containsKey(id)) {
             System.out.printf("Эпик с тикетом '%s' отсутствет\n", id);
             return null;
         }
         return epicTasks.get(id).getIdSubtasks().stream().map(subtaskId -> subtasks.get(subtaskId)).toList();
+    }
+
+    @Override
+    public HistoryManager getManager() {
+        return manager;
     }
 
     private void changerEpicStatus(Epic epic) {
@@ -188,5 +224,4 @@ public class TaskManager {
             epic.setStatus(Statuses.NEW);
         }
     }
-
 }
