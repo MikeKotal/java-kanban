@@ -17,19 +17,16 @@ public class InMemoryTaskManager implements TaskManager {
     private final HashMap<UUID, Subtask> subtasks = new HashMap<>();
 
     public List<Epic> getEpicTasks() {
-        epicTasks.values().forEach(manager::add);
         return new ArrayList<>(epicTasks.values());
     }
 
     @Override
     public List<Task> getTasks() {
-        tasks.values().forEach(manager::add);
         return new ArrayList<>(tasks.values());
     }
 
     @Override
     public List<Subtask> getSubtasks() {
-        subtasks.values().forEach(manager::add);
         return new ArrayList<>(subtasks.values());
     }
 
@@ -55,27 +52,18 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public Epic getEpic(UUID id) {
-        if (!epicTasks.containsKey(id)) {
-            return null;
-        }
         manager.add(epicTasks.get(id));
         return epicTasks.get(id);
     }
 
     @Override
     public Task getTask(UUID id) {
-        if (!tasks.containsKey(id)) {
-            return null;
-        }
         manager.add(tasks.get(id));
         return tasks.get(id);
     }
 
     @Override
     public Subtask getSubtask(UUID id) {
-        if (!subtasks.containsKey(id)) {
-            return null;
-        }
         manager.add(subtasks.get(id));
         return subtasks.get(id);
     }
@@ -178,8 +166,8 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public HistoryManager getManager() {
-        return manager;
+    public List<Task> getTaskHistory() {
+        return manager.getHistory();
     }
 
     private void changerEpicStatus(Epic epic) {

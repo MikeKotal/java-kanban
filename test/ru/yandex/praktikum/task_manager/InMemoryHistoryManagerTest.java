@@ -9,12 +9,14 @@ import ru.yandex.praktikum.task_tracker.Task;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
     private Epic epic;
     private Task task;
     private Subtask subtask;
+    private List<Task> history;
 
     @BeforeEach
     void setUp() {
@@ -30,7 +32,7 @@ class InMemoryHistoryManagerTest {
         historyManager.add(epic);
         historyManager.add(task);
         historyManager.add(subtask);
-        List<Task> history = historyManager.getHistory();
+        history = historyManager.getHistory();
 
         assertEquals(expectedTaskCount, history.size(), "Некорректное количество задач в истории просмотра");
         assertEquals(epic, history.getFirst(), "Эпик должен быть первым в списке");
@@ -45,10 +47,18 @@ class InMemoryHistoryManagerTest {
         for (int i = 0; i < expectedHistorySize; i++) {
             historyManager.add(new Task(String.format("Задача №%s", i + 1), "Тест"));
         }
-        List<Task> history = historyManager.getHistory();
+        history = historyManager.getHistory();
 
         assertEquals(expectedHistorySize, history.size(), "В истории просмотра задач некорректное число задач");
         assertEquals("Задача №1", history.getFirst().getName(), "Первая задача некорректная");
         assertEquals("Задача №10", history.getLast().getName(), "последняя задача некорректная");
+    }
+
+    @Test
+    void whenAddedEmptyTaskThenReturnEmptyHistory() {
+        historyManager.add(null);
+        history = historyManager.getHistory();
+
+        assertTrue(history.isEmpty(), "История просмотра должна быть пустой");
     }
 }

@@ -316,25 +316,16 @@ class InMemoryTaskManagerTest {
         taskManager.getTask(taskManager.createTask(task1));
         Subtask subtask = new Subtask("Взять молоко", "Для кашки", epic1);
         taskManager.getSubtask(taskManager.createSubtask(subtask));
-        List<Task> history = taskManager.getManager().getHistory();
+        List<Task> history = taskManager.getTaskHistory();
 
         assertEquals(expectedTaskCount, history.size(), "Некорректное количество задач в истории просмотра");
-        assertEquals(epic1, history.getFirst(), "Эпик должен быть первым в списке");
-        assertEquals(task1, history.get(1), "Задача должна быть второй в списке");
-        assertEquals(subtask, history.getLast(), "Подзадача должна быть последней в списке");
     }
 
     @Test
-    void whenViewed11TasksThenReturn10ElementsFromHistory() {
-        int expectedHistorySize = 10;
-        taskManager.getEpic(taskManager.createEpic(epic1));
-        for (int i = 0; i < expectedHistorySize; i++) {
-            taskManager.getTask(taskManager.createTask(new Task(String.format("Задача №%s", i + 1), "Тест")));
-        }
-        List<Task> history = taskManager.getManager().getHistory();
+    void whenGetTaskByUnknownIdThenReturnEmptyHistory() {
+        taskManager.getEpic(UUID.randomUUID());
+        List<Task> history = taskManager.getTaskHistory();
 
-        assertEquals(expectedHistorySize, history.size(), "В истории просмотра задач некорректное число задач");
-        assertEquals("Задача №1", history.getFirst().getName(), "Первая задача некорректная");
-        assertEquals("Задача №10", history.getLast().getName(), "последняя задача некорректная");
+        assertTrue(history.isEmpty(), "История должна быть пустой");
     }
 }
