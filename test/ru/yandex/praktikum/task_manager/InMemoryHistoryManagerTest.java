@@ -7,9 +7,10 @@ import ru.yandex.praktikum.task_tracker.Subtask;
 import ru.yandex.praktikum.task_tracker.Task;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
@@ -24,6 +25,9 @@ class InMemoryHistoryManagerTest {
         epic = new Epic("Поход в магазин", "Встречаем гостей");
         task = new Task("Позвонить другу", "Уточнить место встречи");
         subtask = new Subtask("Взять молоко", "Для кашки", epic);
+        epic.setId(UUID.randomUUID());
+        task.setId(UUID.randomUUID());
+        subtask.setId(UUID.randomUUID());
     }
 
     @Test
@@ -41,17 +45,20 @@ class InMemoryHistoryManagerTest {
     }
 
     @Test
-    void whenAdded11TasksThenReturn10ElementsFromHistory() {
-        int expectedHistorySize = 10;
-        historyManager.add(epic);
-        for (int i = 0; i < expectedHistorySize; i++) {
-            historyManager.add(new Task(String.format("Задача №%s", i + 1), "Тест"));
+    void whenAdded3SimilarTasks3TimesThenReturn3ElementsFromHistory() {
+        int expectedHistorySize = 3;
+        for (int i = 0; i < 3; i++) {
+            for (int k = 0; k < expectedHistorySize; k++) {
+                historyManager.add(epic);
+                historyManager.add(task);
+                historyManager.add(subtask);
+            }
         }
         history = historyManager.getHistory();
 
         assertEquals(expectedHistorySize, history.size(), "В истории просмотра задач некорректное число задач");
-        assertEquals("Задача №1", history.getFirst().getName(), "Первая задача некорректная");
-        assertEquals("Задача №10", history.getLast().getName(), "последняя задача некорректная");
+        assertEquals("Поход в магазин", history.getFirst().getName(), "Первая задача некорректная");
+        assertEquals("Взять молоко", history.getLast().getName(), "Последняя задача некорректная");
     }
 
     @Test
@@ -59,6 +66,23 @@ class InMemoryHistoryManagerTest {
         historyManager.add(null);
         history = historyManager.getHistory();
 
-        assertTrue(history.isEmpty(), "История просмотра должна быть пустой");
+        assertNull(history, "История просмотра должна быть пустой");
+    }
+
+    @Test
+    void whenRemoveTaskByIdThenHistoryDecrease() {
+        int sizeBeforeRemoving = 3;
+        int sizeAfterRemoving = 2;
+        String expectedErrorMessage = "Некорректное количество элементов в истории";
+
+        historyManager.add(epic);
+        historyManager.add(task);
+        historyManager.add(subtask);
+
+        assertEquals(sizeBeforeRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+
+        historyManager.remove(task.getId());
+
+        assertEquals(sizeAfterRemoving, historyManager.getHistory().size(), expectedErrorMessage);
     }
 }
