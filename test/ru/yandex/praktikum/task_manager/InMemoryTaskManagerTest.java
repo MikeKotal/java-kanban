@@ -322,10 +322,98 @@ class InMemoryTaskManagerTest {
     }
 
     @Test
+    void whenRemovedEpicThenSubtasksShouldBeDeletedFromHistory() {
+        int expectedSizeBeforeRemoving = 4;
+        List<Task> history;
+        UUID epicId = taskManager.createEpic(epic1);
+
+        taskManager.getEpic(epicId);
+        Subtask subtask = new Subtask("Взять молоко", "Для кашки", epic1);
+        Subtask subtask1 = new Subtask("Взять сливки", "Для кофе", epic1);
+        Subtask subtask2 = new Subtask("Взять масло", "Для хлебушка", epic1);
+        taskManager.getSubtask(taskManager.createSubtask(subtask));
+        taskManager.getSubtask(taskManager.createSubtask(subtask1));
+        taskManager.getSubtask(taskManager.createSubtask(subtask2));
+        history = taskManager.getTaskHistory();
+
+        assertEquals(expectedSizeBeforeRemoving, history.size(),
+                "Некорректное количество задач в истории просмотра");
+
+        taskManager.removeEpic(epicId);
+        history = taskManager.getTaskHistory();
+
+        assertTrue(history.isEmpty(), "Подзадачи должны быть удалены из истории вместе в эпиком");
+    }
+
+    @Test
     void whenGetTaskByUnknownIdThenReturnEmptyHistory() {
         taskManager.getEpic(UUID.randomUUID());
         List<Task> history = taskManager.getTaskHistory();
 
         assertTrue(history.isEmpty(), "История должна быть пустой");
+    }
+
+    @Test
+    void whenClearEpicsThenEpicsAndSubtasksShouldBeDeletedFromHistory() {
+        int expectedSizeBeforeCleared = 5;
+        List<Task> history;
+
+        taskManager.getEpic(taskManager.createEpic(epic1));
+        taskManager.getEpic(taskManager.createEpic(epic2));
+        Subtask subtask = new Subtask("Взять молоко", "Для кашки", epic1);
+        Subtask subtask1 = new Subtask("Взять сливки", "Для кофе", epic2);
+        Subtask subtask2 = new Subtask("Взять масло", "Для хлебушка", epic2);
+        taskManager.getSubtask(taskManager.createSubtask(subtask));
+        taskManager.getSubtask(taskManager.createSubtask(subtask1));
+        taskManager.getSubtask(taskManager.createSubtask(subtask2));
+        history = taskManager.getTaskHistory();
+
+        assertEquals(expectedSizeBeforeCleared, history.size(),
+                "Некорректное количество задач в истории просмотра");
+
+        taskManager.clearEpicTasks();
+        history = taskManager.getTaskHistory();
+
+        assertTrue(history.isEmpty(), "Все эпики и связанные с ними подзадачи должны быть удалены из истории");
+    }
+
+    @Test
+    void whenClearTasksThenTasksShouldBeDeletedFromHistory() {
+        int expectedSizeBeforeCleared = 2;
+        List<Task> history;
+
+        taskManager.getTask(taskManager.createTask(task1));
+        taskManager.getTask(taskManager.createTask(task2));
+        history = taskManager.getTaskHistory();
+
+        assertEquals(expectedSizeBeforeCleared, history.size(),
+                "Некорректное количество задач в истории просмотра");
+
+        taskManager.clearTasks();
+        history = taskManager.getTaskHistory();
+
+        assertTrue(history.isEmpty(), "Все задачи должны быть удалены из истории");
+    }
+
+    @Test
+    void whenClearSubtasksThenSubtasksShouldBeDeletedFromHistory() {
+        int expectedSizeBeforeCleared = 2;
+        List<Task> history;
+
+        taskManager.getEpic(taskManager.createEpic(epic1));
+        Subtask subtask = new Subtask("Взять молоко", "Для кашки", epic1);
+        taskManager.getSubtask(taskManager.createSubtask(subtask));
+        history = taskManager.getTaskHistory();
+
+        assertEquals(expectedSizeBeforeCleared, history.size(),
+                "Некорректное количество задач в истории просмотра");
+
+        taskManager.clearSubtasks();
+        history = taskManager.getTaskHistory();
+
+        assertEquals(expectedSizeBeforeCleared - 1, history.size(),
+                "Все подзадачи должны быть удалены из истории");
+        assertEquals("Поход в магазин", history.getFirst().getName(),
+                "В истории должен остаться только эпик");
     }
 }

@@ -32,17 +32,21 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void clearEpicTasks() {
+        epicTasks.values().forEach(epic -> manager.remove(epic.getId()));
+        subtasks.values().forEach(subtask -> manager.remove(subtask.getId()));
         epicTasks.clear();
         subtasks.clear();
     }
 
     @Override
     public void clearTasks() {
+        tasks.values().forEach(task -> manager.remove(task.getId()));
         tasks.clear();
     }
 
     @Override
     public void clearSubtasks() {
+        subtasks.values().forEach(subtask -> manager.remove(subtask.getId()));
         subtasks.clear();
         epicTasks.values().forEach(epic -> {
             epic.getIdSubtasks().clear();
@@ -134,7 +138,11 @@ public class InMemoryTaskManager implements TaskManager {
     public boolean removeEpic(UUID id) {
         Epic deleteEpic = epicTasks.remove(id);
         if (deleteEpic != null) {
-            deleteEpic.getIdSubtasks().forEach(subtasks::remove);
+            deleteEpic.getIdSubtasks().forEach(subtaskId -> {
+                subtasks.remove(subtaskId);
+                manager.remove(subtaskId);
+            });
+            manager.remove(id);
             return true;
         }
         return false;
@@ -142,6 +150,7 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public boolean removeTask(UUID id) {
+        manager.remove(id);
         return tasks.remove(id) != null;
     }
 
@@ -152,6 +161,7 @@ public class InMemoryTaskManager implements TaskManager {
             Epic linkedEpic = epicTasks.get(subtask.getEpicId());
             linkedEpic.getIdSubtasks().remove(id);
             changerEpicStatus(linkedEpic);
+            manager.remove(id);
             return true;
         }
         return false;
