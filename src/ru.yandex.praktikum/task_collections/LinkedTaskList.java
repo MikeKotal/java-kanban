@@ -1,13 +1,10 @@
 package ru.yandex.praktikum.task_collections;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
-public class LinkedTaskList<T> extends LinkedList<T> {
+public class LinkedTaskList<T> {
     private Node<T> firstTask;
     private Node<T> lastTask;
-    private Node<T> currentTask;
-    private int size = 0;
 
     public void linkLast(T task) {
         final Node<T> preLastTask = lastTask;
@@ -18,30 +15,20 @@ public class LinkedTaskList<T> extends LinkedList<T> {
         } else {
             preLastTask.next = newNode;
         }
-        currentTask = newNode;
-        size++;
     }
 
     public ArrayList<T> getTasks() {
         ArrayList<T> tasks = new ArrayList<>();
         Node<T> currentNode = firstTask;
-        if (currentNode != null) {
-            while (currentNode != null) {
-                tasks.add(currentNode.data);
-                currentNode = currentNode.next;
-            }
-            return tasks;
+        while (currentNode != null) {
+            tasks.add(currentNode.data);
+            currentNode = currentNode.next;
         }
-        return null;
+        return tasks;
     }
 
-    @Override
-    public int size() {
-        return size;
-    }
-
-    public Node<T> getCurrentTask() {
-        return currentTask;
+    public Node<T> getLastTask() {
+        return lastTask;
     }
 
     public void removeNode(Node<T> taskNode) {
@@ -63,6 +50,5 @@ public class LinkedTaskList<T> extends LinkedList<T> {
         }
 
         taskNode.data = null;
-        size--;
     }
 }

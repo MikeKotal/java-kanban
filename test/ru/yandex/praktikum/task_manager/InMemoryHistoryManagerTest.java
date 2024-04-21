@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
@@ -66,7 +66,7 @@ class InMemoryHistoryManagerTest {
         historyManager.add(null);
         history = historyManager.getHistory();
 
-        assertNull(history, "История просмотра должна быть пустой");
+        assertTrue(history.isEmpty(), "История просмотра должна быть пустой");
     }
 
     @Test

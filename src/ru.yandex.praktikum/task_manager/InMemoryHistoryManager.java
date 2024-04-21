@@ -21,7 +21,7 @@ public class InMemoryHistoryManager implements HistoryManager {
                 taskMap.remove(task.getId());
             }
             history.linkLast(task);
-            taskMap.put(task.getId(), history.getCurrentTask());
+            taskMap.put(task.getId(), history.getLastTask());
         }
     }
 
