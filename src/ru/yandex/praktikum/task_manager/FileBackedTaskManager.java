@@ -76,21 +76,18 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         List<String> tasksForFile = new ArrayList<>();
         tasksForFile.add("id,type,name,status,description,epic");
 
-        tasksForFile.addAll(epics.stream().map(Epic::toString).toList());
-        tasksForFile.addAll(tasks.stream().map(Task::toString).toList());
-        tasksForFile.addAll(subtasks.stream().map(Subtask::toString).toList());
+        tasksForFile.addAll(epics.stream().map(Epic::toStringFile).toList());
+        tasksForFile.addAll(tasks.stream().map(Task::toStringFile).toList());
+        tasksForFile.addAll(subtasks.stream().map(Subtask::toStringFile).toList());
         try (OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(taskFile))) {
-            if (!tasksForFile.isEmpty()) {
-                tasksForFile.forEach(task -> {
-                    try {
-                        outputStream.write(task.getBytes(StandardCharsets.UTF_8));
-                        outputStream.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
-                    } catch (IOException e) {
-                        throw new ManagerSaveException("Произошла ошибка при сохранении задач в файл taskFile.csv");
-                    }
-                });
-                tasksForFile.clear();
-            }
+            tasksForFile.forEach(task -> {
+                try {
+                    outputStream.write(task.getBytes(StandardCharsets.UTF_8));
+                    outputStream.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
+                } catch (IOException e) {
+                    throw new ManagerSaveException("Произошла ошибка при сохранении задач в файл taskFile.csv");
+                }
+            });
         } catch (IOException e) {
             throw new ManagerSaveException("Произошла ошибка при сохранении задач в файл taskFile.csv");
         }

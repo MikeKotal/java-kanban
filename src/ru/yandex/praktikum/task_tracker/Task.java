@@ -56,6 +56,10 @@ public class Task {
         this.status = status;
     }
 
+    public String toStringFile() {
+        return String.format("%s,%s,%s,%s,%s", id, TASK, name, status, description);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -71,6 +75,11 @@ public class Task {
 
     @Override
     public String toString() {
-        return String.format("%s,%s,%s,%s,%s", id, TASK, name, status, description);
+        return "Task{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", id=" + id +
+                ", status=" + status +
+                '}';
     }
 }

@@ -121,9 +121,9 @@ public class FileBackedTaskManagerTest {
         assertEquals(expectedCountTasks, tasks.size(), "Некорректное количество задач в списке");
         assertEquals(expectedCountTasks, subtasks.size(), "Некорректное количество подзадач в списке");
 
-        assertEquals(stringEpic, epics.getFirst().toString(), "Некорректный эпик");
-        assertEquals(stringTask, tasks.getFirst().toString(), "Некорректная задача");
-        assertEquals(stringSubtask, subtasks.getFirst().toString(), "Некорректная подзадача");
+        assertEquals(stringEpic, epics.getFirst().toStringFile(), "Некорректный эпик");
+        assertEquals(stringTask, tasks.getFirst().toStringFile(), "Некорректная задача");
+        assertEquals(stringSubtask, subtasks.getFirst().toStringFile(), "Некорректная подзадача");
         assertEquals(epics.getFirst().getIdSubtasks().getFirst(), subtasks.getFirst().getId(),
                 "В эпике некорректный id подзадачи");
     }
