@@ -8,13 +8,26 @@ import ru.yandex.praktikum.task_tracker.Task;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class InMemoryTaskManager implements TaskManager {
     private final HistoryManager manager = Managers.getDefaultHistory();
-    private final HashMap<UUID, Epic> epicTasks = new HashMap<>();
-    private final HashMap<UUID, Task> tasks = new HashMap<>();
-    private final HashMap<UUID, Subtask> subtasks = new HashMap<>();
+    private final Map<UUID, Epic> epicTasks;
+    private final Map<UUID, Task> tasks;
+    private final Map<UUID, Subtask> subtasks;
+
+    public InMemoryTaskManager() {
+        epicTasks = new HashMap<>();
+        tasks = new HashMap<>();
+        subtasks = new HashMap<>();
+    }
+
+    public InMemoryTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks) {
+        this.epicTasks = epicTasks;
+        this.tasks = tasks;
+        this.subtasks = subtasks;
+    }
 
     public List<Epic> getEpicTasks() {
         return new ArrayList<>(epicTasks.values());

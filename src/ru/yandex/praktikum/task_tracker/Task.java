@@ -3,6 +3,8 @@ package ru.yandex.praktikum.task_tracker;
 import java.util.Objects;
 import java.util.UUID;
 
+import static ru.yandex.praktikum.task_tracker.TaskTypes.TASK;
+
 public class Task {
     protected String name;
     protected String description;
@@ -13,6 +15,13 @@ public class Task {
         this.name = name;
         this.description = description;
         status = Statuses.NEW;
+    }
+
+    public Task(String name, String description, UUID id, Statuses status) {
+        this.name = name;
+        this.description = description;
+        this.id = id;
+        this.status = status;
     }
 
     public String getName() {
@@ -45,6 +54,10 @@ public class Task {
 
     public void setStatus(Statuses status) {
         this.status = status;
+    }
+
+    public String toStringFile() {
+        return String.format("%s,%s,%s,%s,%s", id, TASK, name, status, description);
     }
 
     @Override

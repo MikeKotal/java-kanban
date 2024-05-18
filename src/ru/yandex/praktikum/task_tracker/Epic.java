@@ -4,11 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static ru.yandex.praktikum.task_tracker.TaskTypes.EPIC;
+
 public class Epic extends Task {
     private final List<UUID> idSubtasks = new ArrayList<>();
 
     public Epic(String name, String description) {
         super(name, description);
+    }
+
+    public Epic(String name, String description, UUID id, Statuses status) {
+        super(name, description);
+        this.id = id;
+        this.status = status;
     }
 
     public boolean addSubtask(UUID idSubtask) {
@@ -21,6 +29,11 @@ public class Epic extends Task {
 
     public List<UUID> getIdSubtasks() {
         return idSubtasks;
+    }
+
+    @Override
+    public String toStringFile() {
+        return String.format("%s,%s,%s,%s,%s", id, EPIC, name, status, description);
     }
 
     @Override
