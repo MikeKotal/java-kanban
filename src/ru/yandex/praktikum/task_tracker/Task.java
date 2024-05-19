@@ -14,6 +14,7 @@ public class Task {
     protected Statuses status;
     protected LocalDateTime startTime;
     protected Duration duration;
+    protected LocalDateTime endTime;
 
     public Task(String name, String description, LocalDateTime startTime, Long durationInMinutes) {
         this.name = name;
@@ -82,13 +83,15 @@ public class Task {
 
     public LocalDateTime getEndTime() {
         if (startTime != null && !duration.isZero()) {
-            return startTime.plus(duration);
+            endTime = startTime.plus(duration);
+            return endTime;
         }
         return null;
     }
 
     public String toStringFile() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s", id, TASK, name, status, description, startTime, duration.toMinutes());
+        return String.format("%s,%s,%s,%s,%s,%s,%s,%s", id, TASK, name, status, description, startTime,
+                duration.toMinutes(), getEndTime());
     }
 
     @Override
@@ -112,7 +115,8 @@ public class Task {
                 ", id=" + id +
                 ", status=" + status +
                 ", startTime=" + startTime +
-                ", duration=" + duration +
+                ", duration=" + duration.toMinutes() +
+                ", endTime=" + getEndTime() +
                 '}';
     }
 }

@@ -357,6 +357,21 @@ class InMemoryTaskManagerTest {
     }
 
     @Test
+    void whenSubtaskNewAndInProgressThenEpicInProgress() {
+        taskManager.createEpic(epic1);
+        Subtask subtask = new Subtask("Взять молоко", "Для кашки", current, durationInMinutes, epic1);
+        Subtask subtask1 = new Subtask("Взять сливу", "Для радости", current.plusHours(1),
+                durationInMinutes, epic1);
+        taskManager.createSubtask(subtask);
+        taskManager.createSubtask(subtask1);
+        subtask1.setStatus(Statuses.IN_PROGRESS);
+        taskManager.updateSubtask(subtask1);
+        Epic updatedEpic = taskManager.getEpic(epic1.getId());
+
+        assertEquals(Statuses.IN_PROGRESS, updatedEpic.getStatus(), "Некорректный статус эпика");
+    }
+
+    @Test
     void whenSubtaskHasStatusNewThenEpicHasStatusNew() {
         taskManager.createEpic(epic1);
         Subtask subtask = new Subtask("Взять молоко", "Для кашки", current, durationInMinutes, epic1);
@@ -390,8 +405,10 @@ class InMemoryTaskManagerTest {
         taskManager.createSubtask(subtask1);
         Epic epic = taskManager.getEpic(epic1.getId());
         LocalDateTime expectedEndTime = current.plusHours(1).plusMinutes(durationInMinutes);
+        long expectedDuration = 30L;
 
         assertEquals(current, epic.getStartTime(), "Некорректное время старта решения епика");
+        assertEquals(expectedDuration, epic.getDuration().toMinutes(), "Некорректная продолжительность эпика");
         assertEquals(expectedEndTime, epic.getEndTime(), "Некорректное время завершения эпика");
     }
 
@@ -409,6 +426,7 @@ class InMemoryTaskManagerTest {
         Epic epic = taskManager.getEpic(epic1.getId());
 
         assertEquals(current, epic.getStartTime(), "Некорректное время начала эпика");
+        assertEquals(durationInMinutes, epic.getDuration().toMinutes(), "Некорректная продолжительность эпика");
         assertEquals(current.plusMinutes(durationInMinutes), epic.getEndTime(),
                 "Некорретное время завершения эпика");
 
@@ -422,9 +440,11 @@ class InMemoryTaskManagerTest {
         Epic epicUpdated = taskManager.getEpic(epic1.getId());
         LocalDateTime expectedStartTime = current.minusHours(1);
         LocalDateTime expectedEndTime = current.plusHours(2);
+        long expectedDuration = 175L;
 
         assertEquals(expectedStartTime, epicUpdated.getStartTime(),
                 "Был произведен некорректный перерасчет старта эпика");
+        assertEquals(expectedDuration, epic.getDuration().toMinutes(), "Некорректная продолжительность эпика");
         assertEquals(expectedEndTime, epicUpdated.getEndTime(),
                 "Был произведен некорректный перерасчет окончания эпика");
     }
@@ -617,7 +637,7 @@ class InMemoryTaskManagerTest {
         taskManager.createSubtask(subtask);
         taskManager.createSubtask(subtask1);
         taskManager.createSubtask(subtask2);
-        List<Task> tasks = taskManager.getPrioritizedTasks().stream().toList();
+        List<Task> tasks = taskManager.getPrioritizedTasks();
 
         assertEquals(subtask, tasks.getFirst(), "Некорректная задача вначале сортированного списка");
         assertEquals(subtask1, tasks.getLast(), "Некорректная задача в конце сортированного списка");

@@ -73,7 +73,7 @@ class InMemoryHistoryManagerTest {
     }
 
     @Test
-    void whenRemoveTaskByIdThenHistoryDecrease() {
+    void whenRemoveMidTaskByIdThenHistoryDecrease() {
         int sizeBeforeRemoving = 3;
         int sizeAfterRemoving = 2;
         String expectedErrorMessage = "Некорректное количество элементов в истории";
@@ -85,7 +85,50 @@ class InMemoryHistoryManagerTest {
         assertEquals(sizeBeforeRemoving, historyManager.getHistory().size(), expectedErrorMessage);
 
         historyManager.remove(task.getId());
+        history = historyManager.getHistory();
 
         assertEquals(sizeAfterRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+        assertEquals(epic, history.getFirst(), "Первым в списке должен быть эпик");
+        assertEquals(subtask, history.getLast(), "Последней в списке должна быть подзадача");
+    }
+
+    @Test
+    void whenRemoveFirstTaskByIdThenHistoryDecrease() {
+        int sizeBeforeRemoving = 3;
+        int sizeAfterRemoving = 2;
+        String expectedErrorMessage = "Некорректное количество элементов в истории";
+
+        historyManager.add(epic);
+        historyManager.add(task);
+        historyManager.add(subtask);
+
+        assertEquals(sizeBeforeRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+
+        historyManager.remove(epic.getId());
+        history = historyManager.getHistory();
+
+        assertEquals(sizeAfterRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+        assertEquals(task, history.getFirst(), "Первой в списке должен быть задача");
+        assertEquals(subtask, history.getLast(), "Последней в списке должна быть подзадача");
+    }
+
+    @Test
+    void whenRemoveLastTaskByIdThenHistoryDecrease() {
+        int sizeBeforeRemoving = 3;
+        int sizeAfterRemoving = 2;
+        String expectedErrorMessage = "Некорректное количество элементов в истории";
+
+        historyManager.add(epic);
+        historyManager.add(task);
+        historyManager.add(subtask);
+
+        assertEquals(sizeBeforeRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+
+        historyManager.remove(subtask.getId());
+        history = historyManager.getHistory();
+
+        assertEquals(sizeAfterRemoving, historyManager.getHistory().size(), expectedErrorMessage);
+        assertEquals(epic, history.getFirst(), "Первым в списке должен быть эпик");
+        assertEquals(task, history.getLast(), "Последней в списке должна быть задача");
     }
 }

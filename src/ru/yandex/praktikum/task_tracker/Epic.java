@@ -14,10 +14,12 @@ public class Epic extends Task {
         super(name, description, null, 0L);
     }
 
-    public Epic(String name, String description, UUID id, Statuses status, LocalDateTime startTime, Long durationInMinutes) {
+    public Epic(String name, String description, UUID id, Statuses status, LocalDateTime startTime,
+                Long durationInMinutes, LocalDateTime endTime) {
         super(name, description, startTime, durationInMinutes);
         this.id = id;
         this.status = status;
+        this.endTime = endTime;
     }
 
     public boolean addSubtask(UUID idSubtask) {
@@ -33,8 +35,18 @@ public class Epic extends Task {
     }
 
     @Override
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    @Override
     public String toStringFile() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s", id, EPIC, name, status, description, startTime, duration.toMinutes());
+        return String.format("%s,%s,%s,%s,%s,%s,%s,%s", id, EPIC, name, status, description, startTime,
+                duration.toMinutes(), endTime);
     }
 
     @Override
@@ -46,7 +58,8 @@ public class Epic extends Task {
                 ", id=" + id +
                 ", status=" + status +
                 ", startTime=" + startTime +
-                ", duration=" + duration +
+                ", duration=" + duration.toMinutes() +
+                ", endTime=" + endTime +
                 '}';
     }
 }

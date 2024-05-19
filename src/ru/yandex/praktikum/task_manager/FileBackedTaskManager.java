@@ -51,10 +51,11 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 String description = taskInfo[4];
                 LocalDateTime startTime = LocalDateTime.parse(taskInfo[5]);
                 Long durationInMinutes = Long.parseLong(taskInfo[6]);
-                UUID epicId = taskInfo.length == 8 ? UUID.fromString(taskInfo[7]) : null;
+                LocalDateTime endTime = LocalDateTime.parse(taskInfo[7]);
+                UUID epicId = taskInfo.length == 9 ? UUID.fromString(taskInfo[8]) : null;
                 switch (taskTypes) {
                     case EPIC:
-                        epics.put(id, new Epic(name, description, id, status, startTime, durationInMinutes));
+                        epics.put(id, new Epic(name, description, id, status, startTime, durationInMinutes, endTime));
                         break;
                     case TASK:
                         tasks.put(id, new Task(name, description, id, status, startTime, durationInMinutes));
@@ -77,7 +78,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         List<Subtask> subtasks = getSubtasks();
 
         List<String> tasksForFile = new ArrayList<>();
-        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,epic");
+        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,endTime,epic");
 
         tasksForFile.addAll(epics.stream().map(Epic::toStringFile).toList());
         tasksForFile.addAll(tasks.stream().map(Task::toStringFile).toList());

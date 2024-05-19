@@ -5,7 +5,6 @@ import ru.yandex.praktikum.task_tracker.Statuses;
 import ru.yandex.praktikum.task_tracker.Subtask;
 import ru.yandex.praktikum.task_tracker.Task;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -33,6 +32,11 @@ public class InMemoryTaskManager implements TaskManager {
         this.epicTasks = epicTasks;
         this.tasks = tasks;
         this.subtasks = subtasks;
+        sortedTasks.addAll(tasks.values().stream().filter(task -> (task.getStartTime() != null &&
+                !task.getDuration().isZero())).toList());
+        sortedTasks.addAll(subtasks.values().stream().filter(subtask -> (subtask.getStartTime()
+                != null && !subtask.getDuration().isZero())).toList());
+        epicTasks.values().forEach(this::changerEpicDuration);
     }
 
     public List<Epic> getEpicTasks() {
@@ -113,11 +117,11 @@ public class InMemoryTaskManager implements TaskManager {
         if (task.getId() != null && tasks.containsKey(task.getId())) {
             return task.getId();
         }
-        task.setId(UUID.randomUUID());
-        if (task.getStartTime() != null) {
-            sortedTasks.add(task);
-        }
-        if (sortedTasks.stream().noneMatch(sortedTask -> checkTimeIntersections(task, sortedTask))) {
+        if (getTasks().stream().noneMatch(sortedTask -> checkTimeIntersections(task, sortedTask))) {
+            task.setId(UUID.randomUUID());
+            if (task.getStartTime() != null && !task.getDuration().isZero()) {
+                sortedTasks.add(task);
+            }
             tasks.put(task.getId(), task);
             return task.getId();
         }
@@ -132,12 +136,12 @@ public class InMemoryTaskManager implements TaskManager {
         if (subtask.getId() != null && subtasks.containsKey(subtask.getId())) {
             return subtask.getId();
         }
-        subtask.setId(UUID.randomUUID());
-        Epic epic = epicTasks.get(subtask.getEpicId());
-        if (subtask.getStartTime() != null) {
-            sortedTasks.add(subtask);
-        }
-        if (sortedTasks.stream().noneMatch(sortedSubtask -> checkTimeIntersections(subtask, sortedSubtask))) {
+        if (getSubtasks().stream().noneMatch(sortedSubtask -> checkTimeIntersections(subtask, sortedSubtask))) {
+            subtask.setId(UUID.randomUUID());
+            Epic epic = epicTasks.get(subtask.getEpicId());
+            if (subtask.getStartTime() != null && !subtask.getDuration().isZero()) {
+                sortedTasks.add(subtask);
+            }
             epic.addSubtask(subtask.getId());
             subtasks.put(subtask.getId(), subtask);
             changerEpicStatus(epic);
@@ -159,11 +163,12 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateTask(Task task) {
         if (tasks.containsKey(task.getId())) {
-            if (!sortedTasks.contains(task) && task.getStartTime() != null) {
-                sortedTasks.add(task);
-            }
-            if (sortedTasks.stream().noneMatch(sortedTask -> checkTimeIntersections(task, sortedTask))) {
+            if (getTasks().stream().noneMatch(sortedTask -> checkTimeIntersections(task, sortedTask))) {
                 tasks.put(task.getId(), task);
+                sortedTasks.remove(getTask(task.getId()));
+                if (task.getStartTime() != null && !task.getDuration().isZero()) {
+                    sortedTasks.add(task);
+                }
             }
         }
     }
@@ -171,12 +176,13 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateSubtask(Subtask subtask) {
         if (subtasks.containsKey(subtask.getId())) {
-            if (!sortedTasks.contains(subtask) && subtask.getStartTime() != null) {
-                sortedTasks.add(subtask);
-            }
-            if (sortedTasks.stream().noneMatch(sortedSubtask -> checkTimeIntersections(subtask, sortedSubtask))) {
+            if (getSubtasks().stream().noneMatch(sortedSubtask -> checkTimeIntersections(subtask, sortedSubtask))) {
                 Epic epic = epicTasks.get(subtask.getEpicId());
                 subtasks.put(subtask.getId(), subtask);
+                sortedTasks.remove(getSubtask(subtask.getId()));
+                if (subtask.getStartTime() != null && !subtask.getDuration().isZero()) {
+                    sortedTasks.add(subtask);
+                }
                 changerEpicStatus(epic);
                 changerEpicDuration(epic);
             }
@@ -237,8 +243,8 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public Set<Task> getPrioritizedTasks() {
-        return sortedTasks;
+    public List<Task> getPrioritizedTasks() {
+        return new ArrayList<>(sortedTasks);
     }
 
     private void changerEpicStatus(Epic epic) {
@@ -262,18 +268,19 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     private void changerEpicDuration(Epic epic) {
-        List<Subtask> another = epic.getIdSubtasks().stream()
+        List<Subtask> subtasksList = epic.getIdSubtasks().stream()
                 .map(subtasks::get)
                 .filter(subtask -> subtask.getStartTime() != null)
                 .filter(sortedTasks::contains)
                 .toList();
-        if (!another.isEmpty()) {
-            Optional<Subtask> startTime = another.stream().min(Comparator.comparing(Task::getStartTime));
+        if (!subtasksList.isEmpty()) {
+            Optional<Subtask> startTime = subtasksList.stream().min(Comparator.comparing(Task::getStartTime));
             startTime.ifPresent(subtask -> epic.setStartTime(subtask.getStartTime()));
-            List<Subtask> endTimes = another.stream().filter(subtask -> subtask.getEndTime() != null).toList();
+            List<Subtask> endTimes = subtasksList.stream().filter(subtask -> subtask.getEndTime() != null).toList();
             if (!endTimes.isEmpty()) {
                 Optional<Subtask> endTime = endTimes.stream().max(Comparator.comparing(Task::getEndTime));
-                endTime.ifPresent(subtask -> epic.setDuration(Duration.between(startTime.get().getStartTime(), subtask.getEndTime()).toMinutes()));
+                endTime.ifPresent(subtask -> epic.setEndTime(subtask.getEndTime()));
+                epic.setDuration(endTimes.stream().mapToLong(subtask -> subtask.getDuration().toMinutes()).sum());
             }
         } else {
             epic.setStartTime(null);

@@ -27,8 +27,8 @@ public class Subtask extends Task {
 
     @Override
     public String toStringFile() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s,%s", id, SUBTASK, name, status, description, startTime,
-                duration.toMinutes(), epicId);
+        return String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s", id, SUBTASK, name, status, description, startTime,
+                duration.toMinutes(), getEndTime(), epicId);
     }
 
     @Override
@@ -40,7 +40,8 @@ public class Subtask extends Task {
                 ", id=" + id +
                 ", status=" + status +
                 ", startTime=" + startTime +
-                ", duration=" + duration +
+                ", duration=" + duration.toMinutes() +
+                ", endTime=" + getEndTime() +
                 '}';
     }
 }
