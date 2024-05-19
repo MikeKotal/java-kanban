@@ -6,6 +6,7 @@ import ru.yandex.praktikum.task_tracker.Epic;
 import ru.yandex.praktikum.task_tracker.Subtask;
 import ru.yandex.praktikum.task_tracker.Task;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,13 +19,15 @@ class InMemoryHistoryManagerTest {
     private Task task;
     private Subtask subtask;
     private List<Task> history;
+    private final LocalDateTime current = LocalDateTime.now();
 
     @BeforeEach
     void setUp() {
         historyManager = Managers.getDefaultHistory();
+        long durationInMinutes = 15L;
         epic = new Epic("Поход в магазин", "Встречаем гостей");
-        task = new Task("Позвонить другу", "Уточнить место встречи");
-        subtask = new Subtask("Взять молоко", "Для кашки", epic);
+        task = new Task("Позвонить другу", "Уточнить место встречи", current, durationInMinutes);
+        subtask = new Subtask("Взять молоко", "Для кашки", current.plusHours(1), durationInMinutes, epic);
         epic.setId(UUID.randomUUID());
         task.setId(UUID.randomUUID());
         subtask.setId(UUID.randomUUID());

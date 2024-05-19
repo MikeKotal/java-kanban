@@ -1,5 +1,7 @@
 package ru.yandex.praktikum.task_tracker;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -10,18 +12,24 @@ public class Task {
     protected String description;
     protected UUID id;
     protected Statuses status;
+    protected LocalDateTime startTime;
+    protected Duration duration;
 
-    public Task(String name, String description) {
+    public Task(String name, String description, LocalDateTime startTime, Long durationInMinutes) {
         this.name = name;
         this.description = description;
         status = Statuses.NEW;
+        this.startTime = startTime;
+        duration = Duration.ofMinutes(durationInMinutes);
     }
 
-    public Task(String name, String description, UUID id, Statuses status) {
+    public Task(String name, String description, UUID id, Statuses status, LocalDateTime startTime, Long durationInMinutes) {
         this.name = name;
         this.description = description;
         this.id = id;
         this.status = status;
+        this.startTime = startTime;
+        duration = Duration.ofMinutes(durationInMinutes);
     }
 
     public String getName() {
@@ -56,8 +64,31 @@ public class Task {
         this.status = status;
     }
 
+    public void setDuration(Long durationInMinutes) {
+        duration = Duration.ofMinutes(durationInMinutes);
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        if (startTime != null && !duration.isZero()) {
+            return startTime.plus(duration);
+        }
+        return null;
+    }
+
     public String toStringFile() {
-        return String.format("%s,%s,%s,%s,%s", id, TASK, name, status, description);
+        return String.format("%s,%s,%s,%s,%s,%s,%s", id, TASK, name, status, description, startTime, duration.toMinutes());
     }
 
     @Override
@@ -80,6 +111,8 @@ public class Task {
                 ", description='" + description + '\'' +
                 ", id=" + id +
                 ", status=" + status +
+                ", startTime=" + startTime +
+                ", duration=" + duration +
                 '}';
     }
 }

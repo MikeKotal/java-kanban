@@ -3,6 +3,7 @@ package ru.yandex.praktikum.task_manager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.praktikum.exceptions.ManagerSaveException;
+import ru.yandex.praktikum.exceptions.ManagerUploadException;
 import ru.yandex.praktikum.task_tracker.Epic;
 import ru.yandex.praktikum.task_tracker.Statuses;
 import ru.yandex.praktikum.task_tracker.Subtask;
@@ -17,18 +18,23 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileBackedTaskManagerTest {
 
     private FileBackedTaskManager taskManager;
     private File testFile;
-    private final Task task = new Task("Позвонить другу", "Уточнить место встречи");
+    private final LocalDateTime current = LocalDateTime.now();
+    private final long durationInMinutes = 15L;
+    private final Task task = new Task("Позвонить другу", "Уточнить место встречи", current, durationInMinutes);
     private final Epic epic = new Epic("Поход в магазин", "Встречаем гостей");
 
     @BeforeEach
@@ -41,12 +47,14 @@ public class FileBackedTaskManagerTest {
     public void whenCreatedThreeTasksThenSaveThreeTasksIntoFile() throws IOException {
         taskManager.createEpic(epic);
         taskManager.createTask(task);
-        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки", epic));
+        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
+                current.plusHours(1), durationInMinutes, epic));
         Subtask subtask = taskManager.getSubtask(subtaskId);
 
-        String expectedSubtask = String.format("%s,%s,%s,%s,%s,%s", subtask.getId(), TaskTypes.SUBTASK,
-                subtask.getName(), subtask.getStatus(), subtask.getDescription(), subtask.getEpicId());
-        String expectedFirstFileLine = "id,type,name,status,description,epic";
+        String expectedSubtask = String.format("%s,%s,%s,%s,%s,%s,%s,%s", subtask.getId(), TaskTypes.SUBTASK,
+                subtask.getName(), subtask.getStatus(), subtask.getDescription(), subtask.getStartTime(),
+                subtask.getDuration().toMinutes(), subtask.getEpicId());
+        String expectedFirstFileLine = "id,type,name,status,description,startTime,durationInMinutes,epic";
         int expectedLinesIntoFile = 4;
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(testFile, StandardCharsets.UTF_8))) {
@@ -62,12 +70,14 @@ public class FileBackedTaskManagerTest {
     public void whenDeletedOneOfThreeTasksThenShouldLeftTwoTasksIntoFile() throws IOException {
         taskManager.createEpic(epic);
         UUID taskId = taskManager.createTask(task);
-        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки", epic));
+        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
+                current.plusHours(1), durationInMinutes, epic));
         taskManager.removeSubtask(subtaskId);
         Task createdTask = taskManager.getTask(taskId);
 
-        String expectedTask = String.format("%s,%s,%s,%s,%s", createdTask.getId(), TaskTypes.TASK,
-                createdTask.getName(), createdTask.getStatus(), createdTask.getDescription());
+        String expectedTask = String.format("%s,%s,%s,%s,%s,%s,%s", createdTask.getId(), TaskTypes.TASK,
+                createdTask.getName(), createdTask.getStatus(), createdTask.getDescription(),
+                createdTask.getStartTime(), createdTask.getDuration().toMinutes());
         int expectedLinesIntoFile = 3;
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(testFile, StandardCharsets.UTF_8))) {
@@ -85,13 +95,14 @@ public class FileBackedTaskManagerTest {
         UUID taskId = UUID.randomUUID();
         UUID subtaskId = UUID.randomUUID();
 
-        String stringEpic = String.format("%s,%s,%s,%s,%s",
-                epicId, TaskTypes.EPIC, "Поход в магазин", Statuses.NEW, "Встречаем гостей");
-        String stringTask = String.format("%s,%s,%s,%s,%s",
-                taskId, TaskTypes.TASK, "Позвонить другу", Statuses.NEW, "Уточнить место встречи");
-        String stringSubtask = String.format("%s,%s,%s,%s,%s,%s",
-                subtaskId, TaskTypes.SUBTASK, "Взять молоко", Statuses.NEW, "Для кашки", epicId);
-        tasksForFile.add("id,type,name,status,description,epic");
+        String stringEpic = String.format("%s,%s,%s,%s,%s,%s,%s",
+                epicId, TaskTypes.EPIC, "Поход в магазин", Statuses.NEW, "Встречаем гостей", current, durationInMinutes);
+        String stringTask = String.format("%s,%s,%s,%s,%s,%s,%s",
+                taskId, TaskTypes.TASK, "Позвонить другу", Statuses.NEW, "Уточнить место встречи", current.plusHours(1),
+                durationInMinutes);
+        String stringSubtask = String.format("%s,%s,%s,%s,%s,%s,%s,%s",
+                subtaskId, TaskTypes.SUBTASK, "Взять молоко", Statuses.NEW, "Для кашки", current, durationInMinutes, epicId);
+        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,epic");
 
         tasksForFile.add(stringEpic);
         tasksForFile.add(stringTask);
@@ -139,5 +150,12 @@ public class FileBackedTaskManagerTest {
         assertTrue(epics.isEmpty(), "Список эпиков должен быть пустым");
         assertTrue(tasks.isEmpty(), "Список задач должен быть пустым");
         assertTrue(subtasks.isEmpty(), "Список подзадач должен быть пустым");
+    }
+
+    @Test
+    public void checkManagerUploadException() {
+        assertThrows(ManagerUploadException.class,
+                () -> FileBackedTaskManager.loadFromFile(Path.of("Test").toFile()),
+                "Выброшена некорректная ошибка");
     }
 }

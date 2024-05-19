@@ -5,6 +5,7 @@ import ru.yandex.praktikum.task_tracker.Subtask;
 import ru.yandex.praktikum.task_tracker.Task;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface TaskManager {
@@ -47,4 +48,6 @@ public interface TaskManager {
     List<Subtask> getEpicSubtask(UUID id);
 
     List<Task> getTaskHistory();
+
+    Set<Task> getPrioritizedTasks();
 }

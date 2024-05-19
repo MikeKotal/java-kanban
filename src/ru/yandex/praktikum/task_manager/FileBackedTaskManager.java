@@ -16,6 +16,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,16 +49,18 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 String name = taskInfo[2];
                 Statuses status = Statuses.valueOf(taskInfo[3]);
                 String description = taskInfo[4];
-                UUID epicId = taskInfo.length == 6 ? UUID.fromString(taskInfo[5]) : null;
+                LocalDateTime startTime = LocalDateTime.parse(taskInfo[5]);
+                Long durationInMinutes = Long.parseLong(taskInfo[6]);
+                UUID epicId = taskInfo.length == 8 ? UUID.fromString(taskInfo[7]) : null;
                 switch (taskTypes) {
                     case EPIC:
-                        epics.put(id, new Epic(name, description, id, status));
+                        epics.put(id, new Epic(name, description, id, status, startTime, durationInMinutes));
                         break;
                     case TASK:
-                        tasks.put(id, new Task(name, description, id, status));
+                        tasks.put(id, new Task(name, description, id, status, startTime, durationInMinutes));
                         break;
                     case SUBTASK:
-                        subtasks.put(id, new Subtask(name, description, id, status, epicId));
+                        subtasks.put(id, new Subtask(name, description, id, status, startTime, durationInMinutes, epicId));
                         epics.get(epicId).addSubtask(id);
                         break;
                 }
@@ -74,7 +77,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         List<Subtask> subtasks = getSubtasks();
 
         List<String> tasksForFile = new ArrayList<>();
-        tasksForFile.add("id,type,name,status,description,epic");
+        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,epic");
 
         tasksForFile.addAll(epics.stream().map(Epic::toStringFile).toList());
         tasksForFile.addAll(tasks.stream().map(Task::toStringFile).toList());
