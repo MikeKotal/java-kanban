@@ -20,25 +20,25 @@ public class InMemoryTaskManager implements TaskManager {
     private final Map<UUID, Epic> epicTasks;
     private final Map<UUID, Task> tasks;
     private final Map<UUID, Subtask> subtasks;
-    private final Set<Task> sortedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
+    private final Set<Task> sortedTasks;
 
     public InMemoryTaskManager() {
         epicTasks = new HashMap<>();
         tasks = new HashMap<>();
         subtasks = new HashMap<>();
+        sortedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
     }
 
-    public InMemoryTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks) {
+    public InMemoryTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks,
+                               Set<Task> sortedTasks) {
         this.epicTasks = epicTasks;
         this.tasks = tasks;
         this.subtasks = subtasks;
-        sortedTasks.addAll(tasks.values().stream().filter(task -> (task.getStartTime() != null &&
-                !task.getDuration().isZero())).toList());
-        sortedTasks.addAll(subtasks.values().stream().filter(subtask -> (subtask.getStartTime()
-                != null && !subtask.getDuration().isZero())).toList());
+        this.sortedTasks = sortedTasks;
         epicTasks.values().forEach(this::changerEpicDuration);
     }
 
+    @Override
     public List<Epic> getEpicTasks() {
         return new ArrayList<>(epicTasks.values());
     }
@@ -164,8 +164,8 @@ public class InMemoryTaskManager implements TaskManager {
     public void updateTask(Task task) {
         if (tasks.containsKey(task.getId())) {
             if (getTasks().stream().noneMatch(sortedTask -> checkTimeIntersections(task, sortedTask))) {
+                sortedTasks.remove(tasks.get(task.getId()));
                 tasks.put(task.getId(), task);
-                sortedTasks.remove(getTask(task.getId()));
                 if (task.getStartTime() != null && !task.getDuration().isZero()) {
                     sortedTasks.add(task);
                 }
@@ -178,8 +178,8 @@ public class InMemoryTaskManager implements TaskManager {
         if (subtasks.containsKey(subtask.getId())) {
             if (getSubtasks().stream().noneMatch(sortedSubtask -> checkTimeIntersections(subtask, sortedSubtask))) {
                 Epic epic = epicTasks.get(subtask.getEpicId());
+                sortedTasks.remove(subtasks.get(subtask.getId()));
                 subtasks.put(subtask.getId(), subtask);
-                sortedTasks.remove(getSubtask(subtask.getId()));
                 if (subtask.getStartTime() != null && !subtask.getDuration().isZero()) {
                     sortedTasks.add(subtask);
                 }
@@ -247,7 +247,7 @@ public class InMemoryTaskManager implements TaskManager {
         return new ArrayList<>(sortedTasks);
     }
 
-    private void changerEpicStatus(Epic epic) {
+    public void changerEpicStatus(Epic epic) {
         List<Subtask> epicSubtask = epic.getIdSubtasks().stream().map(subtasks::get).toList();
         if (!epicSubtask.isEmpty()) {
             Statuses finalStatus = null;
@@ -267,7 +267,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    private void changerEpicDuration(Epic epic) {
+    public void changerEpicDuration(Epic epic) {
         List<Subtask> subtasksList = epic.getIdSubtasks().stream()
                 .map(subtasks::get)
                 .filter(subtask -> subtask.getStartTime() != null)
@@ -285,10 +285,11 @@ public class InMemoryTaskManager implements TaskManager {
         } else {
             epic.setStartTime(null);
             epic.setDuration(0L);
+            epic.setEndTime(null);
         }
     }
 
-    private boolean checkTimeIntersections(Task task1, Task task2) {
+    public boolean checkTimeIntersections(Task task1, Task task2) {
         if (task1.equals(task2)) {
             return false;
         }

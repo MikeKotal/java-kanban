@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,27 +27,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FileBackedTaskManagerTest {
+public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
 
-    private FileBackedTaskManager taskManager;
     private File testFile;
-    private final LocalDateTime current = LocalDateTime.now();
-    private final long durationInMinutes = 15L;
-    private final Task task = new Task("Позвонить другу", "Уточнить место встречи", current, durationInMinutes);
-    private final Epic epic = new Epic("Поход в магазин", "Встречаем гостей");
 
     @BeforeEach
     void setUp() throws IOException {
         testFile = File.createTempFile("taskFile", ".csv");
-        taskManager = new FileBackedTaskManager(testFile);
+        super.taskManager = new FileBackedTaskManager(testFile);
     }
 
     @Test
     public void whenCreatedThreeTasksThenSaveThreeTasksIntoFile() throws IOException {
-        taskManager.createEpic(epic);
-        taskManager.createTask(task);
+        taskManager.createEpic(epic1);
+        taskManager.createTask(task1);
         UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
-                current.plusHours(1), durationInMinutes, epic));
+                current.plusHours(1), durationInMinutes, epic1));
         Subtask subtask = taskManager.getSubtask(subtaskId);
 
         String expectedSubtask = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s", subtask.getId(), TaskTypes.SUBTASK,
@@ -68,10 +62,10 @@ public class FileBackedTaskManagerTest {
 
     @Test
     public void whenDeletedOneOfThreeTasksThenShouldLeftTwoTasksIntoFile() throws IOException {
-        taskManager.createEpic(epic);
-        UUID taskId = taskManager.createTask(task);
+        taskManager.createEpic(epic1);
+        UUID taskId = taskManager.createTask(task1);
         UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
-                current.plusHours(1), durationInMinutes, epic));
+                current.plusHours(1), durationInMinutes, epic1));
         taskManager.removeSubtask(subtaskId);
         Task createdTask = taskManager.getTask(taskId);
 

@@ -18,9 +18,12 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -31,8 +34,9 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         this.taskFile = taskFile;
     }
 
-    public FileBackedTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks, File taskFile) {
-        super(epicTasks, tasks, subtasks);
+    public FileBackedTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks,
+                                 Set<Task> sortedTasks, File taskFile) {
+        super(epicTasks, tasks, subtasks, sortedTasks);
         this.taskFile = taskFile;
     }
 
@@ -40,6 +44,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         Map<UUID, Epic> epics = new HashMap<>();
         Map<UUID, Task> tasks = new HashMap<>();
         Map<UUID, Subtask> subtasks = new HashMap<>();
+        Set<Task> sortedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
         try (BufferedReader fileReader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
             fileReader.readLine(); //скипаем строку с наименованием полей
             while (fileReader.ready()) {
@@ -58,18 +63,22 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                         epics.put(id, new Epic(name, description, id, status, startTime, durationInMinutes, endTime));
                         break;
                     case TASK:
-                        tasks.put(id, new Task(name, description, id, status, startTime, durationInMinutes));
+                        Task task = new Task(name, description, id, status, startTime, durationInMinutes);
+                        tasks.put(id, task);
+                        sortedTasks.add(task);
                         break;
                     case SUBTASK:
-                        subtasks.put(id, new Subtask(name, description, id, status, startTime, durationInMinutes, epicId));
+                        Subtask subtask = new Subtask(name, description, id, status, startTime, durationInMinutes, epicId);
+                        subtasks.put(id, subtask);
                         epics.get(epicId).addSubtask(id);
+                        sortedTasks.add(subtask);
                         break;
                 }
             }
         } catch (IOException e) {
             throw new ManagerUploadException("Произошла ошибка при восстановении задач из файла taskFile.csv");
         }
-        return new FileBackedTaskManager(epics, tasks, subtasks, file);
+        return new FileBackedTaskManager(epics, tasks, subtasks, sortedTasks, file);
     }
 
     private void save() {
