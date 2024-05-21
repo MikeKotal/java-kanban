@@ -16,26 +16,17 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 public class InMemoryTaskManager implements TaskManager {
-    private final HistoryManager manager = Managers.getDefaultHistory();
-    private final Map<UUID, Epic> epicTasks;
-    private final Map<UUID, Task> tasks;
-    private final Map<UUID, Subtask> subtasks;
-    private final Set<Task> sortedTasks;
+    protected final HistoryManager manager = Managers.getDefaultHistory();
+    protected final Map<UUID, Epic> epicTasks;
+    protected final Map<UUID, Task> tasks;
+    protected final Map<UUID, Subtask> subtasks;
+    protected final Set<Task> sortedTasks;
 
     public InMemoryTaskManager() {
         epicTasks = new HashMap<>();
         tasks = new HashMap<>();
         subtasks = new HashMap<>();
         sortedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
-    }
-
-    public InMemoryTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks,
-                               Set<Task> sortedTasks) {
-        this.epicTasks = epicTasks;
-        this.tasks = tasks;
-        this.subtasks = subtasks;
-        this.sortedTasks = sortedTasks;
-        epicTasks.values().forEach(this::changerEpicDuration);
     }
 
     @Override
