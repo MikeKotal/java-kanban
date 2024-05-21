@@ -3,6 +3,7 @@ package ru.yandex.praktikum.task_manager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.praktikum.exceptions.ManagerSaveException;
+import ru.yandex.praktikum.exceptions.ManagerUploadException;
 import ru.yandex.praktikum.task_tracker.Epic;
 import ru.yandex.praktikum.task_tracker.Statuses;
 import ru.yandex.praktikum.task_tracker.Subtask;
@@ -17,36 +18,37 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FileBackedTaskManagerTest {
+public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
 
-    private FileBackedTaskManager taskManager;
     private File testFile;
-    private final Task task = new Task("Позвонить другу", "Уточнить место встречи");
-    private final Epic epic = new Epic("Поход в магазин", "Встречаем гостей");
 
     @BeforeEach
     void setUp() throws IOException {
         testFile = File.createTempFile("taskFile", ".csv");
-        taskManager = new FileBackedTaskManager(testFile);
+        super.taskManager = new FileBackedTaskManager(testFile);
     }
 
     @Test
     public void whenCreatedThreeTasksThenSaveThreeTasksIntoFile() throws IOException {
-        taskManager.createEpic(epic);
-        taskManager.createTask(task);
-        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки", epic));
+        taskManager.createEpic(epic1);
+        taskManager.createTask(task1);
+        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
+                current.plusHours(1), durationInMinutes, epic1));
         Subtask subtask = taskManager.getSubtask(subtaskId);
 
-        String expectedSubtask = String.format("%s,%s,%s,%s,%s,%s", subtask.getId(), TaskTypes.SUBTASK,
-                subtask.getName(), subtask.getStatus(), subtask.getDescription(), subtask.getEpicId());
-        String expectedFirstFileLine = "id,type,name,status,description,epic";
+        String expectedSubtask = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s", subtask.getId(), TaskTypes.SUBTASK,
+                subtask.getName(), subtask.getStatus(), subtask.getDescription(), subtask.getStartTime(),
+                subtask.getDuration().toMinutes(), subtask.getEndTime(), subtask.getEpicId());
+        String expectedFirstFileLine = "id,type,name,status,description,startTime,durationInMinutes,endTime,epic";
         int expectedLinesIntoFile = 4;
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(testFile, StandardCharsets.UTF_8))) {
@@ -60,14 +62,16 @@ public class FileBackedTaskManagerTest {
 
     @Test
     public void whenDeletedOneOfThreeTasksThenShouldLeftTwoTasksIntoFile() throws IOException {
-        taskManager.createEpic(epic);
-        UUID taskId = taskManager.createTask(task);
-        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки", epic));
+        taskManager.createEpic(epic1);
+        UUID taskId = taskManager.createTask(task1);
+        UUID subtaskId = taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки",
+                current.plusHours(1), durationInMinutes, epic1));
         taskManager.removeSubtask(subtaskId);
         Task createdTask = taskManager.getTask(taskId);
 
-        String expectedTask = String.format("%s,%s,%s,%s,%s", createdTask.getId(), TaskTypes.TASK,
-                createdTask.getName(), createdTask.getStatus(), createdTask.getDescription());
+        String expectedTask = String.format("%s,%s,%s,%s,%s,%s,%s,%s", createdTask.getId(), TaskTypes.TASK,
+                createdTask.getName(), createdTask.getStatus(), createdTask.getDescription(),
+                createdTask.getStartTime(), createdTask.getDuration().toMinutes(), createdTask.getEndTime());
         int expectedLinesIntoFile = 3;
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(testFile, StandardCharsets.UTF_8))) {
@@ -85,13 +89,16 @@ public class FileBackedTaskManagerTest {
         UUID taskId = UUID.randomUUID();
         UUID subtaskId = UUID.randomUUID();
 
-        String stringEpic = String.format("%s,%s,%s,%s,%s",
-                epicId, TaskTypes.EPIC, "Поход в магазин", Statuses.NEW, "Встречаем гостей");
-        String stringTask = String.format("%s,%s,%s,%s,%s",
-                taskId, TaskTypes.TASK, "Позвонить другу", Statuses.NEW, "Уточнить место встречи");
-        String stringSubtask = String.format("%s,%s,%s,%s,%s,%s",
-                subtaskId, TaskTypes.SUBTASK, "Взять молоко", Statuses.NEW, "Для кашки", epicId);
-        tasksForFile.add("id,type,name,status,description,epic");
+        String stringEpic = String.format("%s,%s,%s,%s,%s,%s,%s,%s",
+                epicId, TaskTypes.EPIC, "Поход в магазин", Statuses.NEW, "Встречаем гостей", current.minusDays(2),
+                durationInMinutes, current.plusMinutes(durationInMinutes));
+        String stringTask = String.format("%s,%s,%s,%s,%s,%s,%s,%s",
+                taskId, TaskTypes.TASK, "Позвонить другу", Statuses.NEW, "Уточнить место встречи", current.plusHours(1),
+                durationInMinutes, current.plusHours(1).plusMinutes(durationInMinutes));
+        String stringSubtask = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s",
+                subtaskId, TaskTypes.SUBTASK, "Взять молоко", Statuses.NEW, "Для кашки", current.minusHours(1),
+                durationInMinutes, current.minusHours(1).plusMinutes(durationInMinutes), epicId);
+        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,endTime,epic");
 
         tasksForFile.add(stringEpic);
         tasksForFile.add(stringTask);
@@ -112,6 +119,7 @@ public class FileBackedTaskManagerTest {
 
         taskManager = FileBackedTaskManager.loadFromFile(testFile);
         int expectedCountTasks = 1;
+        long expectedDuration = 15L;
 
         List<Epic> epics = taskManager.getEpicTasks();
         List<Task> tasks = taskManager.getTasks();
@@ -121,11 +129,18 @@ public class FileBackedTaskManagerTest {
         assertEquals(expectedCountTasks, tasks.size(), "Некорректное количество задач в списке");
         assertEquals(expectedCountTasks, subtasks.size(), "Некорректное количество подзадач в списке");
 
-        assertEquals(stringEpic, epics.getFirst().toStringFile(), "Некорректный эпик");
+        assertEquals(epicId, epics.getFirst().getId(), "Некорректный эпик");
         assertEquals(stringTask, tasks.getFirst().toStringFile(), "Некорректная задача");
         assertEquals(stringSubtask, subtasks.getFirst().toStringFile(), "Некорректная подзадача");
         assertEquals(epics.getFirst().getIdSubtasks().getFirst(), subtasks.getFirst().getId(),
                 "В эпике некорректный id подзадачи");
+
+        assertEquals(current.minusHours(1), epics.getFirst().getStartTime(),
+                "Произошел некорректный перерасчет начала выполнения для эпика");
+        assertEquals(current.minusHours(1).plusMinutes(durationInMinutes), epics.getFirst().getEndTime(),
+                "Произошел некорректный перерасчет окончания времени выполнения для эпика");
+        assertEquals(expectedDuration, epics.getFirst().getDuration().toMinutes(),
+                "Некорректная продолжительность выполнения эпика в минутах");
     }
 
     @Test
@@ -139,5 +154,12 @@ public class FileBackedTaskManagerTest {
         assertTrue(epics.isEmpty(), "Список эпиков должен быть пустым");
         assertTrue(tasks.isEmpty(), "Список задач должен быть пустым");
         assertTrue(subtasks.isEmpty(), "Список подзадач должен быть пустым");
+    }
+
+    @Test
+    public void checkManagerUploadException() {
+        assertThrows(ManagerUploadException.class,
+                () -> FileBackedTaskManager.loadFromFile(Path.of("Test").toFile()),
+                "Выброшена некорректная ошибка");
     }
 }

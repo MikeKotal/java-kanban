@@ -16,10 +16,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -30,16 +29,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         this.taskFile = taskFile;
     }
 
-    public FileBackedTaskManager(Map<UUID, Epic> epicTasks, Map<UUID, Task> tasks, Map<UUID, Subtask> subtasks, File taskFile) {
-        super(epicTasks, tasks, subtasks);
-        this.taskFile = taskFile;
-    }
-
     public static FileBackedTaskManager loadFromFile(File file) {
-        Map<UUID, Epic> epics = new HashMap<>();
-        Map<UUID, Task> tasks = new HashMap<>();
-        Map<UUID, Subtask> subtasks = new HashMap<>();
+        FileBackedTaskManager taskManager;
         try (BufferedReader fileReader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
+            taskManager = new FileBackedTaskManager(file);
             fileReader.readLine(); //скипаем строку с наименованием полей
             while (fileReader.ready()) {
                 String[] taskInfo = fileReader.readLine().split(",");
@@ -48,24 +41,32 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 String name = taskInfo[2];
                 Statuses status = Statuses.valueOf(taskInfo[3]);
                 String description = taskInfo[4];
-                UUID epicId = taskInfo.length == 6 ? UUID.fromString(taskInfo[5]) : null;
+                LocalDateTime startTime = LocalDateTime.parse(taskInfo[5]);
+                Long durationInMinutes = Long.parseLong(taskInfo[6]);
+                LocalDateTime endTime = LocalDateTime.parse(taskInfo[7]);
+                UUID epicId = taskInfo.length == 9 ? UUID.fromString(taskInfo[8]) : null;
                 switch (taskTypes) {
                     case EPIC:
-                        epics.put(id, new Epic(name, description, id, status));
+                        taskManager.epicTasks.put(id, new Epic(name, description, id, status, startTime, durationInMinutes, endTime));
                         break;
                     case TASK:
-                        tasks.put(id, new Task(name, description, id, status));
+                        Task task = new Task(name, description, id, status, startTime, durationInMinutes);
+                        taskManager.tasks.put(id, task);
+                        taskManager.sortedTasks.add(task);
                         break;
                     case SUBTASK:
-                        subtasks.put(id, new Subtask(name, description, id, status, epicId));
-                        epics.get(epicId).addSubtask(id);
+                        Subtask subtask = new Subtask(name, description, id, status, startTime, durationInMinutes, epicId);
+                        taskManager.subtasks.put(id, subtask);
+                        taskManager.epicTasks.get(epicId).addSubtask(id);
+                        taskManager.sortedTasks.add(subtask);
                         break;
                 }
             }
         } catch (IOException e) {
             throw new ManagerUploadException("Произошла ошибка при восстановении задач из файла taskFile.csv");
         }
-        return new FileBackedTaskManager(epics, tasks, subtasks, file);
+        taskManager.epicTasks.values().forEach(taskManager::changerEpicDuration);
+        return taskManager;
     }
 
     private void save() {
@@ -74,7 +75,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         List<Subtask> subtasks = getSubtasks();
 
         List<String> tasksForFile = new ArrayList<>();
-        tasksForFile.add("id,type,name,status,description,epic");
+        tasksForFile.add("id,type,name,status,description,startTime,durationInMinutes,endTime,epic");
 
         tasksForFile.addAll(epics.stream().map(Epic::toStringFile).toList());
         tasksForFile.addAll(tasks.stream().map(Task::toStringFile).toList());

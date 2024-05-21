@@ -47,4 +47,6 @@ public interface TaskManager {
     List<Subtask> getEpicSubtask(UUID id);
 
     List<Task> getTaskHistory();
+
+    List<Task> getPrioritizedTasks();
 }
