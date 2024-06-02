@@ -1,6 +1,7 @@
 package ru.yandex.praktikum.task_manager;
 
 import org.junit.jupiter.api.Test;
+import ru.yandex.praktikum.exceptions.NotFoundException;
 import ru.yandex.praktikum.task_tracker.Epic;
 import ru.yandex.praktikum.task_tracker.Statuses;
 import ru.yandex.praktikum.task_tracker.Subtask;
@@ -14,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TaskManagerTest<T extends TaskManager> {
@@ -51,11 +53,30 @@ public abstract class TaskManagerTest<T extends TaskManager> {
     void whenAddedTwoIntersectionsTasksThenReturnOnlyOne() {
         taskManager.createTask(task1);
         task2.setStartTime(current.plusMinutes(14));
-        taskManager.createTask(task2);
+
+        assertThrows(NotFoundException.class,
+                () -> taskManager.createTask(task2), "Выбррошено некорректное исключение");
 
         int expectedTasksCount = 1;
         assertEquals(expectedTasksCount, taskManager.getTasks().size(),
                 "В случае пересечения 2-х задач, должна остаться только одна");
+    }
+
+    @Test
+    void whenAddedIntersectionsTaskAndSubtaskThenReturnOnlyOne() {
+        taskManager.createTask(task1);
+        taskManager.createEpic(epic1);
+        Subtask subtask = new Subtask("Взять молоко", "Для кашки", current, durationInMinutes,
+                epic1);
+        subtask.setStartTime(current.plusMinutes(14));
+
+        assertThrows(NotFoundException.class,
+                () -> taskManager.createSubtask(subtask), "Выбррошено некорректное исключение");
+
+        int expectedTasksCount = 1;
+        int actualCountTasks = taskManager.getSubtasks().size() + taskManager.getTasks().size();
+        assertEquals(expectedTasksCount, actualCountTasks,
+                "В случае пересечения задачи и подзадачи, должна остаться только одна");
     }
 
     @Test
@@ -77,8 +98,10 @@ public abstract class TaskManagerTest<T extends TaskManager> {
         taskManager.createEpic(epic2);
         taskManager.createSubtask(new Subtask("Взять молоко", "Для кашки", current, durationInMinutes,
                 epic1));
-        taskManager.createSubtask(new Subtask("Сделать английский", "Present Simple",
-                current.plusMinutes(14), durationInMinutes, epic2));
+
+        assertThrows(NotFoundException.class,
+                () -> taskManager.createSubtask(new Subtask("Сделать английский", "Present Simple",
+                        current.plusMinutes(14), durationInMinutes, epic2)), "Выбррошено некорректное исключение");
 
         int expectedTasksCount = 1;
         assertEquals(expectedTasksCount, taskManager.getSubtasks().size(),
@@ -94,6 +117,7 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
         assertTrue(taskManager.getEpicTasks().isEmpty(), "Список епиков не пустой");
         assertTrue(taskManager.getSubtasks().isEmpty(), "Список подзадач епика не пустой");
+        assertTrue(taskManager.getPrioritizedTasks().isEmpty(), "Список задач в приоритете не пустой");
     }
 
     @Test
@@ -108,6 +132,7 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void whenSubtaskListClearedThenSubtaskListShouldBeEmpty() {
+        taskManager.createEpic(epic1);
         Subtask subtask = new Subtask("Взять молоко", "Для кашки", current, durationInMinutes,
                 epic1);
         taskManager.createSubtask(subtask);
@@ -130,9 +155,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void whenGetEpicByUnknownIdThenEpicIsEmpty() {
-        Epic createdEpic = taskManager.getEpic(UUID.randomUUID());
-
-        assertNull(createdEpic, "При попытке получить неизвестный эпик вернулся не null");
+        assertThrows(NotFoundException.class,
+                () -> taskManager.getEpic(UUID.randomUUID()), "Выброшена некорректная ошибка");
     }
 
     @Test
@@ -145,9 +169,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void whenGetTaskByUnknownIdThenTaskIsEmpty() {
-        Task createdTask = taskManager.getTask(UUID.randomUUID());
-
-        assertNull(createdTask, "При попытке получить неизвестную задачу вернулся не null");
+        assertThrows(NotFoundException.class,
+                () -> taskManager.getTask(UUID.randomUUID()), "Выброшена некорректная ошибка");
     }
 
     @Test
@@ -162,9 +185,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void whenGetSubtaskByUnknownIdThenSubtaskIsEmpty() {
-        Subtask createdSubtask = taskManager.getSubtask(UUID.randomUUID());
-
-        assertNull(createdSubtask, "При попытке получить неизвестную подзадачу вернулся не null");
+        assertThrows(NotFoundException.class,
+                () -> taskManager.getSubtask(UUID.randomUUID()), "Выброшена некорректная ошибка");
     }
 
     @Test
@@ -377,8 +399,11 @@ public abstract class TaskManagerTest<T extends TaskManager> {
         subtask1.setDuration(30L);
         subtask2.setStartTime(current.minusHours(1));
         subtask2.setDuration(55L);
-        taskManager.updateSubtask(subtask);
-        taskManager.updateSubtask(subtask1);
+        assertThrows(NotFoundException.class,
+                () -> {
+                    taskManager.updateSubtask(subtask);
+                    taskManager.updateSubtask(subtask1);
+                }, "Выбррошено некорректное исключение");
         taskManager.updateSubtask(subtask2);
         Epic epicUpdated = taskManager.getEpic(epic1.getId());
         LocalDateTime expectedStartTime = current.minusHours(1);
@@ -495,7 +520,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     void whenGetTaskByUnknownIdThenReturnEmptyHistory() {
-        taskManager.getEpic(UUID.randomUUID());
+        assertThrows(NotFoundException.class,
+                () -> taskManager.getEpic(UUID.randomUUID()), "Выброшена некорректная ошибка");
         List<Task> history = taskManager.getTaskHistory();
 
         assertTrue(history.isEmpty(), "История должна быть пустой");
