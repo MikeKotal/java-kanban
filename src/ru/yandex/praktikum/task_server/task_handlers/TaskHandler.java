@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import ru.yandex.praktikum.exceptions.NotFoundException;
 import ru.yandex.praktikum.task_manager.TaskManager;
 import ru.yandex.praktikum.task_tracker.Task;
@@ -35,19 +34,10 @@ import static ru.yandex.praktikum.Constants.START_TIME;
 import static ru.yandex.praktikum.Constants.SUCCESS;
 import static ru.yandex.praktikum.Constants.TASKS;
 
-public class TaskHandler extends BaseHttpHandler implements HttpHandler {
+public class TaskHandler extends BaseHttpHandler {
 
     public TaskHandler(TaskManager manager) {
         super(manager);
-    }
-
-    enum Endpoint {
-        GET_TASKS,
-        GET_TASK_BY_ID,
-        CREATE_TASK,
-        UPDATE_TASK,
-        DELETE_TASK,
-        UNKNOWN
     }
 
     @Override
@@ -69,14 +59,18 @@ public class TaskHandler extends BaseHttpHandler implements HttpHandler {
                     break;
                 case UPDATE_TASK:
                     updateTask(exchange, body);
+                    break;
                 case DELETE_TASK:
                     deleteTaskById(exchange);
+                    break;
                 default:
                     object = new JsonObject();
                     object.addProperty(ERROR_MESSAGE, "Некорректно вызван метод");
                     String error = gson.toJson(object);
                     sendText(exchange, error, NOT_FOUND);
             }
+        } catch (NotFoundException e) {
+            sendError(exchange, e);
         } catch (NullPointerException e) {
             object = new JsonObject();
             object.addProperty(ERROR_MESSAGE, "Некорретно переданы входные параметры");
@@ -101,10 +95,11 @@ public class TaskHandler extends BaseHttpHandler implements HttpHandler {
             }
             if (requestMethod.equals(POST) && !body.isEmpty()) {
                 JsonElement element = JsonParser.parseString(body);
-                if (element.isJsonObject()) {
-                    JsonObject object = element.getAsJsonObject();
-                    return object.get(ID) == null ? Endpoint.CREATE_TASK : Endpoint.UPDATE_TASK;
+                JsonObject object = element.getAsJsonObject();
+                if (object.isEmpty()) {
+                    throw new NotFoundException("Необходимо передать атрибуты задачи", BAD_REQUEST);
                 }
+                return object.get(ID) == null ? Endpoint.CREATE_TASK : Endpoint.UPDATE_TASK;
             }
         }
         if (pathParts.length == 3 && pathParts[1].equals(TASKS)) {
@@ -127,57 +122,41 @@ public class TaskHandler extends BaseHttpHandler implements HttpHandler {
     }
 
     private void getTaskById(HttpExchange exchange) throws IOException {
-        try {
-            UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
-            Task task = manager.getTask(id);
-            String response = gson.toJson(task);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
+        Task task = manager.getTask(id);
+        String response = gson.toJson(task);
+        sendText(exchange, response, SUCCESS);
+
     }
 
     private void createTask(HttpExchange exchange, String body) throws IOException {
-        try {
-            object = JsonParser.parseString(body).getAsJsonObject();
-            String name = object.get(NAME).getAsString();
-            String description = object.get(DESCRIPTION).getAsString();
-            LocalDateTime startTime = object.get(START_TIME) != null
-                    ? LocalDateTime.parse(object.get(START_TIME).getAsString(), FORMATTER)
-                    : null;
-            long duration = object.get(DURATION) != null ? object.get(DURATION).getAsLong() : 0L;
+        object = JsonParser.parseString(body).getAsJsonObject();
+        String name = object.get(NAME).getAsString();
+        String description = object.get(DESCRIPTION).getAsString();
+        LocalDateTime startTime = object.get(START_TIME) != null
+                ? LocalDateTime.parse(object.get(START_TIME).getAsString(), FORMATTER)
+                : null;
+        long duration = object.get(DURATION) != null ? object.get(DURATION).getAsLong() : 0L;
 
-            UUID taskId = manager.createTask(new Task(name, description, startTime, duration));
-            object = new JsonObject();
-            object.addProperty(ID, taskId.toString());
-            String response = gson.toJson(object);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID taskId = manager.createTask(new Task(name, description, startTime, duration));
+        object = new JsonObject();
+        object.addProperty(ID, taskId.toString());
+        String response = gson.toJson(object);
+        sendText(exchange, response, SUCCESS);
     }
 
     private void updateTask(HttpExchange exchange, String body) throws IOException {
-        try {
-            Task task = gson.fromJson(body, Task.class);
-            manager.updateTask(task);
-            sendText(exchange, "", CREATED_OK);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        Task task = gson.fromJson(body, Task.class);
+        manager.updateTask(task);
+        sendText(exchange, "", CREATED_OK);
     }
 
     private void deleteTaskById(HttpExchange exchange) throws IOException {
-        boolean result;
-        try {
-            UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
-            result = manager.removeTask(id);
-            object = new JsonObject();
-            object.addProperty(RESULT, result);
-            String response = gson.toJson(object);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
+        boolean result = manager.removeTask(id);
+        object = new JsonObject();
+        object.addProperty(RESULT, result);
+        String response = gson.toJson(object);
+        sendText(exchange, response, SUCCESS);
     }
 }

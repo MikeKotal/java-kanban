@@ -3,7 +3,7 @@ package ru.yandex.praktikum;
 import java.time.format.DateTimeFormatter;
 
 public interface Constants {
-    DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     int PORT = 8080;
 

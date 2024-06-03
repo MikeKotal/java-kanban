@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import ru.yandex.praktikum.exceptions.NotFoundException;
 import ru.yandex.praktikum.task_manager.TaskManager;
 import ru.yandex.praktikum.task_server.task_serializers.TaskDurationAdapter;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 
 import static ru.yandex.praktikum.Constants.ERROR_MESSAGE;
 
-public class BaseHttpHandler {
+public abstract class BaseHttpHandler implements HttpHandler {
 
     protected static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
     protected final TaskManager manager;
@@ -32,6 +33,16 @@ public class BaseHttpHandler {
 
     public BaseHttpHandler(TaskManager manager) {
         this.manager = manager;
+    }
+
+    enum Endpoint {
+        GET_TASKS,
+        GET_TASK_BY_ID,
+        GET_EPIC_SUBTASK,
+        CREATE_TASK,
+        UPDATE_TASK,
+        DELETE_TASK,
+        UNKNOWN
     }
 
     protected void sendText(HttpExchange exchange, String responseText, int responseCode) throws IOException {

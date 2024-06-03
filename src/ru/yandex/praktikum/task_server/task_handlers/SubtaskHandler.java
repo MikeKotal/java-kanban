@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import ru.yandex.praktikum.exceptions.NotFoundException;
 import ru.yandex.praktikum.task_manager.TaskManager;
 import ru.yandex.praktikum.task_tracker.Epic;
@@ -37,19 +36,10 @@ import static ru.yandex.praktikum.Constants.START_TIME;
 import static ru.yandex.praktikum.Constants.SUBTASKS;
 import static ru.yandex.praktikum.Constants.SUCCESS;
 
-public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
+public class SubtaskHandler extends BaseHttpHandler {
 
     public SubtaskHandler(TaskManager manager) {
         super(manager);
-    }
-
-    enum Endpoint {
-        GET_SUBTASKS,
-        GET_SUBTASK_BY_ID,
-        CREATE_SUBTASK,
-        UPDATE_SUBTASK,
-        DELETE_SUBTASK,
-        UNKNOWN
     }
 
     @Override
@@ -60,25 +50,29 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
             Endpoint endpoint = getEndpoint(exchange, body);
 
             switch (endpoint) {
-                case GET_SUBTASKS:
+                case GET_TASKS:
                     getSubtasks(exchange);
                     break;
-                case GET_SUBTASK_BY_ID:
+                case GET_TASK_BY_ID:
                     getSubtaskById(exchange);
                     break;
-                case CREATE_SUBTASK:
+                case CREATE_TASK:
                     createSubtask(exchange, body);
                     break;
-                case UPDATE_SUBTASK:
+                case UPDATE_TASK:
                     updateSubtask(exchange, body);
-                case DELETE_SUBTASK:
+                    break;
+                case DELETE_TASK:
                     deleteSubtaskById(exchange);
+                    break;
                 default:
                     object = new JsonObject();
                     object.addProperty(ERROR_MESSAGE, "Некорректно вызван метод");
                     String error = gson.toJson(object);
                     sendText(exchange, error, NOT_FOUND);
             }
+        } catch (NotFoundException e) {
+            sendError(exchange, e);
         } catch (NullPointerException e) {
             object = new JsonObject();
             object.addProperty(ERROR_MESSAGE, "Некорретно переданы входные параметры");
@@ -99,22 +93,23 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
 
         if (pathParts.length == 2 && pathParts[1].equals(SUBTASKS)) {
             if (requestMethod.equals(GET)) {
-                return Endpoint.GET_SUBTASKS;
+                return Endpoint.GET_TASKS;
             }
             if (requestMethod.equals(POST) && !body.isEmpty()) {
                 JsonElement element = JsonParser.parseString(body);
-                if (element.isJsonObject()) {
-                    JsonObject object = element.getAsJsonObject();
-                    return object.get(ID) == null ? Endpoint.CREATE_SUBTASK : Endpoint.UPDATE_SUBTASK;
+                JsonObject object = element.getAsJsonObject();
+                if (object.isEmpty()) {
+                    throw new NotFoundException("Необходимо передать атрибуты подзадачи", BAD_REQUEST);
                 }
+                return object.get(ID) == null ? Endpoint.CREATE_TASK : Endpoint.UPDATE_TASK;
             }
         }
         if (pathParts.length == 3 && pathParts[1].equals(SUBTASKS)) {
             if (requestMethod.equals(GET)) {
-                return Endpoint.GET_SUBTASK_BY_ID;
+                return Endpoint.GET_TASK_BY_ID;
             }
             if (requestMethod.equals(DELETE)) {
-                return Endpoint.DELETE_SUBTASK;
+                return Endpoint.DELETE_TASK;
             }
         }
         return Endpoint.UNKNOWN;
@@ -129,59 +124,42 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
     }
 
     private void getSubtaskById(HttpExchange exchange) throws IOException {
-        try {
-            UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
-            Subtask subtask = manager.getSubtask(id);
-            String response = gson.toJson(subtask);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
+        Subtask subtask = manager.getSubtask(id);
+        String response = gson.toJson(subtask);
+        sendText(exchange, response, SUCCESS);
     }
 
     private void createSubtask(HttpExchange exchange, String body) throws IOException {
-        try {
-            object = JsonParser.parseString(body).getAsJsonObject();
-            String name = object.get(NAME).getAsString();
-            String description = object.get(DESCRIPTION).getAsString();
-            LocalDateTime startTime = object.get(START_TIME) != null
-                    ? LocalDateTime.parse(object.get(START_TIME).getAsString(), FORMATTER)
-                    : null;
-            long duration = object.get(DURATION) != null ? object.get(DURATION).getAsLong() : 0L;
-            UUID epicId = UUID.fromString(object.get(EPIC_ID).getAsString());
-            Epic epic = manager.getEpic(epicId);
+        object = JsonParser.parseString(body).getAsJsonObject();
+        String name = object.get(NAME).getAsString();
+        String description = object.get(DESCRIPTION).getAsString();
+        LocalDateTime startTime = object.get(START_TIME) != null
+                ? LocalDateTime.parse(object.get(START_TIME).getAsString(), FORMATTER)
+                : null;
+        long duration = object.get(DURATION) != null ? object.get(DURATION).getAsLong() : 0L;
+        UUID epicId = UUID.fromString(object.get(EPIC_ID).getAsString());
+        Epic epic = manager.getEpic(epicId);
 
-            UUID subtaskId = manager.createSubtask(new Subtask(name, description, startTime, duration, epic));
-            object = new JsonObject();
-            object.addProperty(ID, subtaskId.toString());
-            String response = gson.toJson(object);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID subtaskId = manager.createSubtask(new Subtask(name, description, startTime, duration, epic));
+        object = new JsonObject();
+        object.addProperty(ID, subtaskId.toString());
+        String response = gson.toJson(object);
+        sendText(exchange, response, SUCCESS);
     }
 
     private void updateSubtask(HttpExchange exchange, String body) throws IOException {
-        try {
-            Subtask subtask = gson.fromJson(body, Subtask.class);
-            manager.updateSubtask(subtask);
-            sendText(exchange, "", CREATED_OK);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        Subtask subtask = gson.fromJson(body, Subtask.class);
+        manager.updateSubtask(subtask);
+        sendText(exchange, "", CREATED_OK);
     }
 
     private void deleteSubtaskById(HttpExchange exchange) throws IOException {
-        boolean result;
-        try {
-            UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
-            result = manager.removeSubtask(id);
-            object = new JsonObject();
-            object.addProperty(RESULT, result);
-            String response = gson.toJson(object);
-            sendText(exchange, response, SUCCESS);
-        } catch (NotFoundException e) {
-            sendError(exchange, e);
-        }
+        UUID id = UUID.fromString(exchange.getRequestURI().getPath().split("/")[2]);
+        boolean result = manager.removeSubtask(id);
+        object = new JsonObject();
+        object.addProperty(RESULT, result);
+        String response = gson.toJson(object);
+        sendText(exchange, response, SUCCESS);
     }
 }

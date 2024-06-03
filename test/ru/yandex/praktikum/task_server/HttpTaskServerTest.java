@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static ru.yandex.praktikum.Constants.BAD_REQUEST;
 import static ru.yandex.praktikum.Constants.CREATED_OK;
 import static ru.yandex.praktikum.Constants.EPICS;
 import static ru.yandex.praktikum.Constants.ERROR_MESSAGE;
@@ -196,6 +197,26 @@ public class HttpTaskServerTest {
     }
 
     @Test
+    void whenSendUpdateTaskWithoutBodyThenReturnedError() throws IOException, InterruptedException {
+        String body = "{}";
+        URI url = URI.create("http://localhost:8080/tasks");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(BAD_REQUEST, response.statusCode(), "Некорректный статус код ответа");
+
+        JsonElement jsonElement = JsonParser.parseString(response.body());
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        String errorMessage = jsonObject.get(ERROR_MESSAGE).getAsString();
+        String expectedMessage = "Необходимо передать атрибуты задачи";
+
+        assertEquals(expectedMessage, errorMessage, "Некорректное сообщение об ошибке");
+    }
+
+    @Test
     void whenSendCreateSubtaskRequestThenSubtaskIsCreated() throws IOException, InterruptedException {
         taskManager.createEpic(epic);
         Subtask subtask = new Subtask("Взять молоко", "Для кашки", current, durationInMinutes, epic);
@@ -310,6 +331,26 @@ public class HttpTaskServerTest {
     }
 
     @Test
+    void whenSendUpdateSubtaskWithoutBodyThenReturnedError() throws IOException, InterruptedException {
+        String body = "{}";
+        URI url = URI.create("http://localhost:8080/subtasks");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(BAD_REQUEST, response.statusCode(), "Некорректный статус код ответа");
+
+        JsonElement jsonElement = JsonParser.parseString(response.body());
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        String errorMessage = jsonObject.get(ERROR_MESSAGE).getAsString();
+        String expectedMessage = "Необходимо передать атрибуты подзадачи";
+
+        assertEquals(expectedMessage, errorMessage, "Некорректное сообщение об ошибке");
+    }
+
+    @Test
     void whenSendCreateEpicRequestThenEpicIsCreated() throws IOException, InterruptedException {
         String body = gson.toJson(epic);
         URI url = URI.create("http://localhost:8080/epics");
@@ -416,6 +457,26 @@ public class HttpTaskServerTest {
 
         assertTrue(result, "Некорректное значение результата удаления эпика");
         assertTrue(epics.isEmpty(), "Список эпиков должен быть пустым");
+    }
+
+    @Test
+    void whenSendCreateEpicWithoutBodyThenReturnedError() throws IOException, InterruptedException {
+        String body = "{}";
+        URI url = URI.create("http://localhost:8080/epics");
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(url)
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(BAD_REQUEST, response.statusCode(), "Некорректный статус код ответа");
+
+        JsonElement jsonElement = JsonParser.parseString(response.body());
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        String errorMessage = jsonObject.get(ERROR_MESSAGE).getAsString();
+        String expectedMessage = "Необходимо передать атрибуты эпика";
+
+        assertEquals(expectedMessage, errorMessage, "Некорректное сообщение об ошибке");
     }
 
     @Test
